@@ -28,12 +28,16 @@ const User = sequelize.define("User", {
     allowNull: true
   },
   role: {
-    type: DataTypes.ENUM("admin", "teacher", "student"),
+    type: DataTypes.ENUM("admin", "teacher", "student", "parent"),
     defaultValue: "student"
   },
   isActive: {
     type: DataTypes.BOOLEAN,
     defaultValue: true
+  },
+  isAdminApproved: {
+    type: DataTypes.BOOLEAN,
+    defaultValue: false
   },
   isVerified: {
     type: DataTypes.BOOLEAN,

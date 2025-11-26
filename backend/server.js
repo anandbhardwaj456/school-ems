@@ -5,6 +5,9 @@ const session = require("express-session");
 const sequelize = require("./config/db");
 const passport = require("passport");
 const authRoutes = require("./routes/authRoutes");
+const admissionRoutes = require("./routes/admissionRoutes");
+const studentRoutes = require("./routes/studentRoutes");
+const attendanceRoutes = require("./routes/attendanceRoutes");
 
 dotenv.config();
 
@@ -27,6 +30,9 @@ app.use(passport.initialize());
 
 // Routes
 app.use("/api/auth", authRoutes);
+app.use("/api/admissions", admissionRoutes);
+app.use("/api/students", studentRoutes);
+app.use("/api/attendance", attendanceRoutes);
 
 // Default Route
 app.get("/", (req, res) => {
