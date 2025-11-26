@@ -85,6 +85,49 @@ exports.createStudent = async (req, res) => {
   }
 };
 
+exports.assignClassSection = async (req, res) => {
+  try {
+    if (!req.user || req.user.role !== "admin") {
+      return res.status(403).json({
+        success: false,
+        message: "Only admins can assign class and section",
+      });
+    }
+
+    const { id } = req.params;
+    const { classId, sectionId } = req.body;
+
+    if (!classId || !sectionId) {
+      return res.status(400).json({
+        success: false,
+        message: "classId and sectionId are required",
+      });
+    }
+
+    const student = await Student.findByPk(id);
+    if (!student) {
+      return res
+        .status(404)
+        .json({ success: false, message: "Student not found" });
+    }
+
+    student.classId = classId;
+    student.sectionId = sectionId;
+    await student.save();
+
+    res.json({
+      success: true,
+      message: "Class and section assigned",
+      data: student,
+    });
+  } catch (err) {
+    console.error("Assign class/section error:", err.message);
+    res
+      .status(500)
+      .json({ success: false, message: "Internal Server Error" });
+  }
+};
+
 exports.listStudents = async (req, res) => {
   try {
     if (!req.user || (req.user.role !== "admin" && req.user.role !== "teacher")) {
@@ -94,7 +137,7 @@ exports.listStudents = async (req, res) => {
       });
     }
 
-    const { classId, sectionId, search } = req.query;
+    const { classId, sectionId, search, page = 1, limit = 10 } = req.query;
 
     const whereStudent = {};
     if (classId) whereStudent.classId = classId;
@@ -108,7 +151,11 @@ exports.listStudents = async (req, res) => {
       ];
     }
 
-    const students = await Student.findAll({
+    const pageNum = parseInt(page, 10) || 1;
+    const limitNum = parseInt(limit, 10) || 10;
+    const offset = (pageNum - 1) * limitNum;
+
+    const result = await Student.findAndCountAll({
       where: whereStudent,
       include: [
         {
@@ -120,9 +167,20 @@ exports.listStudents = async (req, res) => {
         },
       ],
       order: [["createdAt", "DESC"]],
+      offset,
+      limit: limitNum,
     });
 
-    res.json({ success: true, data: students });
+    res.json({
+      success: true,
+      data: result.rows,
+      pagination: {
+        page: pageNum,
+        limit: limitNum,
+        total: result.count,
+        totalPages: Math.ceil(result.count / limitNum) || 1,
+      },
+    });
   } catch (err) {
     console.error("List students error:", err.message);
     res

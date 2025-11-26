@@ -8,6 +8,8 @@ const authRoutes = require("./routes/authRoutes");
 const admissionRoutes = require("./routes/admissionRoutes");
 const studentRoutes = require("./routes/studentRoutes");
 const attendanceRoutes = require("./routes/attendanceRoutes");
+const examRoutes = require("./routes/examRoutes");
+const markRoutes = require("./routes/markRoutes");
 
 dotenv.config();
 
@@ -33,6 +35,8 @@ app.use("/api/auth", authRoutes);
 app.use("/api/admissions", admissionRoutes);
 app.use("/api/students", studentRoutes);
 app.use("/api/attendance", attendanceRoutes);
+app.use("/api/exams", examRoutes);
+app.use("/api/marks", markRoutes);
 
 // Default Route
 app.get("/", (req, res) => {
