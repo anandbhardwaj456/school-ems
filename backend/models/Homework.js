@@ -1,51 +1,46 @@
-const { DataTypes } = require("sequelize");
-const sequelize = require("../config/db");
+const { mongoose } = require("../config/db");
+const { v4: uuidv4 } = require("uuid");
 
-const Homework = sequelize.define(
-  "Homework",
+const HomeworkSchema = new mongoose.Schema(
   {
     homeworkId: {
-      type: DataTypes.UUID,
-      defaultValue: DataTypes.UUIDV4,
-      primaryKey: true,
+      type: String,
+      default: uuidv4,
+      unique: true,
     },
     classId: {
-      type: DataTypes.UUID,
-      allowNull: false,
+      type: String,
+      required: true,
     },
     sectionId: {
-      type: DataTypes.UUID,
-      allowNull: false,
+      type: String,
+      required: true,
     },
     subjectId: {
-      type: DataTypes.UUID,
-      allowNull: false,
+      type: String,
+      required: true,
     },
     teacherId: {
-      type: DataTypes.UUID,
-      allowNull: false,
+      type: String,
+      required: true,
     },
     title: {
-      type: DataTypes.STRING,
-      allowNull: false,
+      type: String,
+      required: true,
     },
     description: {
-      type: DataTypes.TEXT,
-      allowNull: true,
+      type: String,
     },
     dueDate: {
-      type: DataTypes.DATEONLY,
-      allowNull: true,
+      type: String,
     },
     attachments: {
-      type: DataTypes.JSON,
-      allowNull: true,
+      type: Array,
     },
   },
   {
     timestamps: true,
-    tableName: "homework",
   }
 );
 
-module.exports = Homework;
+module.exports = mongoose.model("Homework", HomeworkSchema);

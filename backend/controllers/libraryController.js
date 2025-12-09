@@ -1,4 +1,3 @@
-const { Op } = require("sequelize");
 const Book = require("../models/Book");
 const BookIssue = require("../models/BookIssue");
 
@@ -19,7 +18,7 @@ exports.createBook = async (req, res) => {
     }
 
     if (isbn) {
-      const existing = await Book.findOne({ where: { isbn } });
+      const existing = await Book.findOne({ isbn });
       if (existing) {
         return res.status(400).json({
           success: false,
@@ -56,20 +55,14 @@ exports.listBooks = async (req, res) => {
 
     const { search, category } = req.query;
 
-    const where = {};
-    if (category) where.category = category;
+    const filter = {};
+    if (category) filter.category = category;
     if (search) {
-      where[Op.or] = [
-        { title: { [Op.like]: `%${search}%` } },
-        { author: { [Op.like]: `%${search}%` } },
-        { isbn: { [Op.like]: `%${search}%` } },
-      ];
+      const regex = new RegExp(search, "i");
+      filter.$or = [{ title: regex }, { author: regex }, { isbn: regex }];
     }
 
-    const books = await Book.findAll({
-      where,
-      order: [["title", "ASC"]],
-    });
+    const books = await Book.find(filter).sort({ title: 1 });
 
     res.json({ success: true, data: books });
   } catch (err) {
@@ -89,7 +82,7 @@ exports.issueBook = async (req, res) => {
 
     const { bookId, userId, issuedOn, dueOn } = req.body;
 
-    const book = await Book.findByPk(bookId);
+    const book = await Book.findOne({ bookId });
     if (!book) {
       return res
         .status(404)
@@ -131,7 +124,7 @@ exports.returnBook = async (req, res) => {
 
     const { issueId, returnedOn, fineAmount } = req.body;
 
-    const issue = await BookIssue.findByPk(issueId);
+    const issue = await BookIssue.findOne({ issueId });
     if (!issue) {
       return res
         .status(404)
@@ -149,7 +142,7 @@ exports.returnBook = async (req, res) => {
     if (fineAmount !== undefined) issue.fineAmount = fineAmount;
     await issue.save();
 
-    const book = await Book.findByPk(issue.bookId);
+    const book = await Book.findOne({ bookId: issue.bookId });
     if (book) {
       book.availableCopies += 1;
       await book.save();
@@ -172,10 +165,7 @@ exports.listIssuedBooksForUser = async (req, res) => {
 
     const { userId } = req.params;
 
-    const issues = await BookIssue.findAll({
-      where: { userId },
-      order: [["issuedOn", "DESC"]],
-    });
+    const issues = await BookIssue.find({ userId }).sort({ issuedOn: -1 });
 
     res.json({ success: true, data: issues });
   } catch (err) {

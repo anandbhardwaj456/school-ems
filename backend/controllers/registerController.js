@@ -15,7 +15,7 @@ exports.registerUser = async (req, res) => {
     if (!email && !phone)
       return res.status(400).json({ success: false, message: "Either email or phone is required" });
 
-    const existing = await User.findOne({ where: { email } });
+    const existing = await User.findOne({ email });
     if (existing) return res.status(400).json({ success: false, message: "User already exists" });
 
     const hashed = password ? await bcrypt.hash(password, 10) : null;
@@ -29,7 +29,7 @@ exports.registerUser = async (req, res) => {
       password: hashed,
       role,
       otp,
-      otpExpiry
+      otpExpiry,
     });
 
     if (email) await sendEmailOTP(email, otp);

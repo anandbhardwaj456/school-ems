@@ -22,7 +22,10 @@ exports.createSession = async (req, res) => {
     const { date, classId, sectionId, period, remarks } = req.body;
 
     const existing = await AttendanceSession.findOne({
-      where: { date, classId, sectionId, period: period || null },
+      date,
+      classId,
+      sectionId,
+      period: period || null,
     });
 
     if (existing) {
@@ -73,7 +76,7 @@ exports.addEntries = async (req, res) => {
       });
     }
 
-    const session = await AttendanceSession.findByPk(sessionId);
+    const session = await AttendanceSession.findOne({ sessionId });
     if (!session) {
       return res
         .status(404)
@@ -93,18 +96,22 @@ exports.addEntries = async (req, res) => {
     for (const e of entries) {
       if (!e.studentId || !validStatuses.includes(e.status)) continue;
 
-      const student = await Student.findByPk(e.studentId);
+      const student = await Student.findOne({ studentId: e.studentId });
       if (!student) continue;
 
-      const [entry] = await AttendanceEntry.findOrCreate({
-        where: { sessionId, studentId: e.studentId },
-        defaults: {
-          status: e.status,
-          remarks: e.remarks || null,
-        },
+      let entry = await AttendanceEntry.findOne({
+        sessionId,
+        studentId: e.studentId,
       });
 
-      if (!entry.isNewRecord) {
+      if (!entry) {
+        entry = await AttendanceEntry.create({
+          sessionId,
+          studentId: e.studentId,
+          status: e.status,
+          remarks: e.remarks || null,
+        });
+      } else {
         entry.status = e.status;
         entry.remarks = e.remarks || null;
         await entry.save();
@@ -137,15 +144,12 @@ exports.listSessions = async (req, res) => {
 
     const { date, classId, sectionId } = req.query;
 
-    const where = {};
-    if (date) where.date = date;
-    if (classId) where.classId = classId;
-    if (sectionId) where.sectionId = sectionId;
+    const filter = {};
+    if (date) filter.date = date;
+    if (classId) filter.classId = classId;
+    if (sectionId) filter.sectionId = sectionId;
 
-    const sessions = await AttendanceSession.findAll({
-      where,
-      order: [["date", "DESC"]],
-    });
+    const sessions = await AttendanceSession.find(filter).sort({ date: -1 });
 
     res.json({ success: true, data: sessions });
   } catch (err) {
@@ -167,14 +171,14 @@ exports.getSessionEntries = async (req, res) => {
 
     const { sessionId } = req.params;
 
-    const session = await AttendanceSession.findByPk(sessionId);
+    const session = await AttendanceSession.findOne({ sessionId });
     if (!session) {
       return res
         .status(404)
         .json({ success: false, message: "Attendance session not found" });
     }
 
-    const entries = await AttendanceEntry.findAll({ where: { sessionId } });
+    const entries = await AttendanceEntry.find({ sessionId });
 
     res.json({
       success: true,

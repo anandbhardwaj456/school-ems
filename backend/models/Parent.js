@@ -1,27 +1,27 @@
-const { DataTypes } = require("sequelize");
-const sequelize = require("../config/db");
+const { mongoose } = require("../config/db");
+const { v4: uuidv4 } = require("uuid");
 
-const Parent = sequelize.define("Parent", {
-  parentId: {
-    type: DataTypes.UUID,
-    defaultValue: DataTypes.UUIDV4,
-    primaryKey: true
+const ParentSchema = new mongoose.Schema(
+  {
+    parentId: {
+      type: String,
+      default: uuidv4,
+      unique: true,
+    },
+    userId: {
+      type: String,
+      required: true,
+    },
+    address: {
+      type: String,
+    },
+    phoneAlt: {
+      type: String,
+    },
   },
-  userId: {
-    type: DataTypes.UUID,
-    allowNull: false
-  },
-  address: {
-    type: DataTypes.TEXT,
-    allowNull: true
-  },
-  phoneAlt: {
-    type: DataTypes.STRING,
-    allowNull: true
+  {
+    timestamps: true,
   }
-}, {
-  timestamps: true,
-  tableName: "parents"
-});
+);
 
-module.exports = Parent;
+module.exports = mongoose.model("Parent", ParentSchema);

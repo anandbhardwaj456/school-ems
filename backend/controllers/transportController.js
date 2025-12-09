@@ -21,7 +21,7 @@ exports.createBus = async (req, res) => {
         .json({ success: false, message: "busNumber is required" });
     }
 
-    const existing = await Bus.findOne({ where: { busNumber } });
+    const existing = await Bus.findOne({ busNumber });
     if (existing) {
       return res.status(400).json({
         success: false,
@@ -52,7 +52,7 @@ exports.listBuses = async (req, res) => {
       });
     }
 
-    const buses = await Bus.findAll({ order: [["busNumber", "ASC"]] });
+    const buses = await Bus.find().sort({ busNumber: 1 });
     res.json({ success: true, data: buses });
   } catch (err) {
     console.error("List buses error:", err.message);
@@ -94,7 +94,7 @@ exports.listRoutes = async (req, res) => {
       });
     }
 
-    const routes = await Route.findAll({ order: [["name", "ASC"]] });
+    const routes = await Route.find().sort({ name: 1 });
     res.json({ success: true, data: routes });
   } catch (err) {
     console.error("List routes error:", err.message);
@@ -113,21 +113,21 @@ exports.assignBusToRoute = async (req, res) => {
 
     const { busId, routeId } = req.body;
 
-    const bus = await Bus.findByPk(busId);
+    const bus = await Bus.findOne({ busId });
     if (!bus) {
       return res
         .status(404)
         .json({ success: false, message: "Bus not found" });
     }
 
-    const route = await Route.findByPk(routeId);
+    const route = await Route.findOne({ routeId });
     if (!route) {
       return res
         .status(404)
         .json({ success: false, message: "Route not found" });
     }
 
-    const existing = await BusRouteAssignment.findOne({ where: { busId, routeId } });
+    const existing = await BusRouteAssignment.findOne({ busId, routeId });
     if (existing) {
       return res.status(400).json({
         success: false,
@@ -154,7 +154,7 @@ exports.assignStudentToRoute = async (req, res) => {
 
     const { studentId, routeId, pickupStop, dropStop } = req.body;
 
-    const student = await Student.findByPk(studentId);
+    const student = await Student.findOne({ studentId });
     if (!student) {
       return res
         .status(404)
@@ -168,7 +168,7 @@ exports.assignStudentToRoute = async (req, res) => {
         .json({ success: false, message: "Route not found" });
     }
 
-    const existing = await StudentTransport.findOne({ where: { studentId } });
+    const existing = await StudentTransport.findOne({ studentId });
     if (existing) {
       existing.routeId = routeId;
       existing.pickupStop = pickupStop;
@@ -202,7 +202,7 @@ exports.listStudentsForRoute = async (req, res) => {
 
     const { routeId } = req.params;
 
-    const assignments = await StudentTransport.findAll({ where: { routeId } });
+    const assignments = await StudentTransport.find({ routeId });
 
     res.json({ success: true, data: assignments });
   } catch (err) {

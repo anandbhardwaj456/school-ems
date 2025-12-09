@@ -1,72 +1,66 @@
-const { DataTypes } = require("sequelize");
-const sequelize = require("../config/db");
+const { mongoose } = require("../config/db");
 const { v4: uuidv4 } = require("uuid");
 
-const User = sequelize.define("User", {
-  userId: {
-    type: DataTypes.UUID,
-    defaultValue: uuidv4,
-    primaryKey: true
+const UserSchema = new mongoose.Schema(
+  {
+    userId: {
+      type: String,
+      default: uuidv4,
+      unique: true,
+    },
+    fullName: {
+      type: String,
+      required: true,
+    },
+    email: {
+      type: String,
+      unique: true,
+    },
+    phone: {
+      type: String,
+      unique: true,
+    },
+    password: {
+      type: String,
+    },
+    role: {
+      type: String,
+      enum: ["admin", "teacher", "student", "parent"],
+      default: "student",
+    },
+    isActive: {
+      type: Boolean,
+      default: true,
+    },
+    isAdminApproved: {
+      type: Boolean,
+      default: false,
+    },
+    isVerified: {
+      type: Boolean,
+      default: false,
+    },
+    otp: {
+      type: String,
+    },
+    otpExpiry: {
+      type: Date,
+    },
+    googleId: {
+      type: String,
+      unique: true,
+      sparse: true,
+    },
+    refreshToken: {
+      type: String,
+    },
+    refreshTokenExpiry: {
+      type: Date,
+    },
   },
-  fullName: {
-    type: DataTypes.STRING,
-    allowNull: false
-  },
-  email: {
-    type: DataTypes.STRING,
-    allowNull: false,
-    unique: true,
-    validate: { isEmail: true }
-  },
-  phone: {
-    type: DataTypes.STRING,
-    allowNull: true,
-    unique: true
-  },
-  password: {
-    type: DataTypes.STRING,
-    allowNull: true
-  },
-  role: {
-    type: DataTypes.ENUM("admin", "teacher", "student", "parent"),
-    defaultValue: "student"
-  },
-  isActive: {
-    type: DataTypes.BOOLEAN,
-    defaultValue: true
-  },
-  isAdminApproved: {
-    type: DataTypes.BOOLEAN,
-    defaultValue: false
-  },
-  isVerified: {
-    type: DataTypes.BOOLEAN,
-    defaultValue: false
-  },
-  otp: {
-    type: DataTypes.STRING,
-    allowNull: true
-  },
-  otpExpiry: {
-    type: DataTypes.DATE,
-    allowNull: true
-  },
-  googleId: {
-    type: DataTypes.STRING,
-    allowNull: true,
-    unique: true
-  },
-  refreshToken: {
-    type: DataTypes.STRING,
-    allowNull: true
-  },
-  refreshTokenExpiry: {
-    type: DataTypes.DATE,
-    allowNull: true
+  {
+    timestamps: true,
   }
-}, {
-  timestamps: true,
-  tableName: "users"
-});
+);
 
-module.exports = User;
+module.exports = mongoose.model("User", UserSchema);

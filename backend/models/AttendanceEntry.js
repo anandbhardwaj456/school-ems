@@ -1,31 +1,33 @@
-const { DataTypes } = require("sequelize");
-const sequelize = require("../config/db");
+const { mongoose } = require("../config/db");
+const { v4: uuidv4 } = require("uuid");
 
-const AttendanceEntry = sequelize.define("AttendanceEntry", {
-  entryId: {
-    type: DataTypes.UUID,
-    defaultValue: DataTypes.UUIDV4,
-    primaryKey: true,
+const AttendanceEntrySchema = new mongoose.Schema(
+  {
+    entryId: {
+      type: String,
+      default: uuidv4,
+      unique: true,
+    },
+    sessionId: {
+      type: String,
+      required: true,
+    },
+    studentId: {
+      type: String,
+      required: true,
+    },
+    status: {
+      type: String,
+      enum: ["PRESENT", "ABSENT", "LATE", "HALF_DAY"],
+      required: true,
+    },
+    remarks: {
+      type: String,
+    },
   },
-  sessionId: {
-    type: DataTypes.UUID,
-    allowNull: false,
-  },
-  studentId: {
-    type: DataTypes.UUID,
-    allowNull: false,
-  },
-  status: {
-    type: DataTypes.ENUM("PRESENT", "ABSENT", "LATE", "HALF_DAY"),
-    allowNull: false,
-  },
-  remarks: {
-    type: DataTypes.TEXT,
-    allowNull: true,
-  },
-}, {
-  timestamps: true,
-  tableName: "attendance_entries",
-});
+  {
+    timestamps: true,
+  }
+);
 
-module.exports = AttendanceEntry;
+module.exports = mongoose.model("AttendanceEntry", AttendanceEntrySchema);

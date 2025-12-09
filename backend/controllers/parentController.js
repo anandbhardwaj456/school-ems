@@ -1,4 +1,3 @@
-const { Op } = require("sequelize");
 const bcrypt = require("bcryptjs");
 const User = require("../models/User");
 const Parent = require("../models/Parent");
@@ -29,7 +28,7 @@ exports.createParent = async (req, res) => {
       });
     }
 
-    const existingUser = email ? await User.findOne({ where: { email } }) : null;
+    const existingUser = email ? await User.findOne({ email }) : null;
     if (existingUser) {
       return res.status(400).json({
         success: false,
@@ -79,42 +78,46 @@ exports.listParents = async (req, res) => {
 
     const { search, page = 1, limit = 10 } = req.query;
 
-    const whereUser = { role: "parent" };
+    const userFilter = { role: "parent" };
     if (search) {
-      whereUser[Op.or] = [
-        { fullName: { [Op.like]: `%${search}%` } },
-        { email: { [Op.like]: `%${search}%` } },
-        { phone: { [Op.like]: `%${search}%` } },
+      const regex = new RegExp(search, "i");
+      userFilter.$or = [
+        { fullName: regex },
+        { email: regex },
+        { phone: regex },
       ];
     }
 
     const pageNum = parseInt(page, 10) || 1;
     const limitNum = parseInt(limit, 10) || 10;
-    const offset = (pageNum - 1) * limitNum;
+    const skip = (pageNum - 1) * limitNum;
 
-    const result = await Parent.findAndCountAll({
-      include: [
-        {
-          model: User,
-          as: "user",
-          where: whereUser,
-          required: true,
-          attributes: ["userId", "fullName", "email", "phone", "role"],
-        },
-      ],
-      order: [["createdAt", "DESC"]],
-      offset,
-      limit: limitNum,
+    const users = await User.find(userFilter)
+      .sort({ createdAt: -1 })
+      .skip(skip)
+      .limit(limitNum)
+      .select("userId fullName email phone role");
+
+    const userIds = users.map((u) => u.userId);
+
+    const parents = await Parent.find({ userId: { $in: userIds } });
+
+    const parentsWithUser = parents.map((p) => {
+      const pObj = p.toObject();
+      const user = users.find((u) => u.userId === p.userId);
+      return { ...pObj, user };
     });
+
+    const total = await User.countDocuments(userFilter);
 
     res.json({
       success: true,
-      data: result.rows,
+      data: parentsWithUser,
       pagination: {
         page: pageNum,
         limit: limitNum,
-        total: result.count,
-        totalPages: Math.ceil(result.count / limitNum) || 1,
+        total,
+        totalPages: Math.ceil(total / limitNum) || 1,
       },
     });
   } catch (err) {
@@ -135,15 +138,7 @@ exports.getParentById = async (req, res) => {
 
     const { id } = req.params;
 
-    const parent = await Parent.findByPk(id, {
-      include: [
-        {
-          model: User,
-          as: "user",
-          attributes: ["userId", "fullName", "email", "phone", "role"],
-        },
-      ],
-    });
+    const parent = await Parent.findOne({ parentId: id });
 
     if (!parent) {
       return res
@@ -151,7 +146,11 @@ exports.getParentById = async (req, res) => {
         .json({ success: false, message: "Parent not found" });
     }
 
-    res.json({ success: true, data: parent });
+    const user = await User.findOne({ userId: parent.userId }).select(
+      "userId fullName email phone role"
+    );
+
+    res.json({ success: true, data: { ...parent.toObject(), user } });
   } catch (err) {
     console.error("Get parent error:", err.message);
     res.status(500).json({ success: false, message: "Internal Server Error" });
@@ -171,14 +170,14 @@ exports.linkChild = async (req, res) => {
     const { id } = req.params; // parentId
     const { studentId, relation } = req.body;
 
-    const parent = await Parent.findByPk(id);
+    const parent = await Parent.findOne({ parentId: id });
     if (!parent) {
       return res
         .status(404)
         .json({ success: false, message: "Parent not found" });
     }
 
-    const student = await Student.findByPk(studentId);
+    const student = await Student.findOne({ studentId });
     if (!student) {
       return res
         .status(404)
@@ -186,7 +185,8 @@ exports.linkChild = async (req, res) => {
     }
 
     const existing = await ParentStudent.findOne({
-      where: { parentId: id, studentId },
+      parentId: id,
+      studentId,
     });
     if (existing) {
       return res.status(400).json({
@@ -226,11 +226,11 @@ exports.listChildrenForParent = async (req, res) => {
 
     // If parent role, enforce own id later when we add associations between User and Parent
 
-    const links = await ParentStudent.findAll({ where: { parentId: id } });
+    const links = await ParentStudent.find({ parentId: id });
 
     const studentIds = links.map((l) => l.studentId);
     const students = studentIds.length
-      ? await Student.findAll({ where: { studentId: studentIds } })
+      ? await Student.find({ studentId: { $in: studentIds } })
       : [];
 
     res.json({

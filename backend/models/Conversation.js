@@ -1,27 +1,26 @@
-const { DataTypes } = require("sequelize");
-const sequelize = require("../config/db");
+const { mongoose } = require("../config/db");
+const { v4: uuidv4 } = require("uuid");
 
-const Conversation = sequelize.define(
-  "Conversation",
+const ConversationSchema = new mongoose.Schema(
   {
     conversationId: {
-      type: DataTypes.UUID,
-      defaultValue: DataTypes.UUIDV4,
-      primaryKey: true,
+      type: String,
+      default: uuidv4,
+      unique: true,
     },
     type: {
-      type: DataTypes.ENUM("DIRECT", "GROUP"),
-      defaultValue: "DIRECT",
+      type: String,
+      enum: ["DIRECT", "GROUP"],
+      default: "DIRECT",
     },
     createdBy: {
-      type: DataTypes.UUID,
-      allowNull: false,
+      type: String,
+      required: true,
     },
   },
   {
     timestamps: true,
-    tableName: "conversations",
   }
 );
 
-module.exports = Conversation;
+module.exports = mongoose.model("Conversation", ConversationSchema);

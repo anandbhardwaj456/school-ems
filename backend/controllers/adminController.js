@@ -10,7 +10,7 @@ exports.makeTeacherAdmin = async (req, res) => {
 
     const { userId } = req.params;
 
-    const user = await User.findByPk(userId);
+    const user = await User.findOne({ userId });
     if (!user) {
       return res
         .status(404)

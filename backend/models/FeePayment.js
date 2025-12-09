@@ -1,43 +1,39 @@
-const { DataTypes } = require("sequelize");
-const sequelize = require("../config/db");
+const { mongoose } = require("../config/db");
+const { v4: uuidv4 } = require("uuid");
 
-const FeePayment = sequelize.define(
-  "FeePayment",
+const FeePaymentSchema = new mongoose.Schema(
   {
     paymentId: {
-      type: DataTypes.UUID,
-      defaultValue: DataTypes.UUIDV4,
-      primaryKey: true,
+      type: String,
+      default: uuidv4,
+      unique: true,
     },
     invoiceId: {
-      type: DataTypes.UUID,
-      allowNull: false,
+      type: String,
+      required: true,
     },
     amount: {
-      type: DataTypes.DECIMAL(10, 2),
-      allowNull: false,
+      type: Number,
+      required: true,
     },
     mode: {
-      type: DataTypes.ENUM("CASH", "ONLINE", "CHEQUE", "UPI"),
-      allowNull: false,
+      type: String,
+      enum: ["CASH", "ONLINE", "CHEQUE", "UPI"],
+      required: true,
     },
     transactionRef: {
-      type: DataTypes.STRING,
-      allowNull: true,
+      type: String,
     },
     gateway: {
-      type: DataTypes.STRING,
-      allowNull: true,
+      type: String,
     },
     gatewayStatus: {
-      type: DataTypes.STRING,
-      allowNull: true,
+      type: String,
     },
   },
   {
     timestamps: true,
-    tableName: "fee_payments",
   }
 );
 
-module.exports = FeePayment;
+module.exports = mongoose.model("FeePayment", FeePaymentSchema);

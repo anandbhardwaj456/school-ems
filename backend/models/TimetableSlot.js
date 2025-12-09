@@ -1,51 +1,48 @@
-const { DataTypes } = require("sequelize");
-const sequelize = require("../config/db");
+const { mongoose } = require("../config/db");
+const { v4: uuidv4 } = require("uuid");
 
-const TimetableSlot = sequelize.define(
-  "TimetableSlot",
+const TimetableSlotSchema = new mongoose.Schema(
   {
     slotId: {
-      type: DataTypes.UUID,
-      defaultValue: DataTypes.UUIDV4,
-      primaryKey: true,
+      type: String,
+      default: uuidv4,
+      unique: true,
     },
     classId: {
-      type: DataTypes.UUID,
-      allowNull: false,
+      type: String,
+      required: true,
     },
     sectionId: {
-      type: DataTypes.UUID,
-      allowNull: false,
+      type: String,
+      required: true,
     },
     subjectId: {
-      type: DataTypes.UUID,
-      allowNull: false,
+      type: String,
+      required: true,
     },
     teacherId: {
-      type: DataTypes.UUID,
-      allowNull: false,
+      type: String,
+      required: true,
     },
     dayOfWeek: {
-      type: DataTypes.INTEGER,
-      allowNull: false,
+      type: Number,
+      required: true,
     },
     startTime: {
-      type: DataTypes.TIME,
-      allowNull: false,
+      type: String,
+      required: true,
     },
     endTime: {
-      type: DataTypes.TIME,
-      allowNull: false,
+      type: String,
+      required: true,
     },
     room: {
-      type: DataTypes.STRING,
-      allowNull: true,
+      type: String,
     },
   },
   {
     timestamps: true,
-    tableName: "timetable_slots",
   }
 );
 
-module.exports = TimetableSlot;
+module.exports = mongoose.model("TimetableSlot", TimetableSlotSchema);

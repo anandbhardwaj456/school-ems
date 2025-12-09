@@ -1,36 +1,31 @@
-const { DataTypes } = require("sequelize");
-const sequelize = require("../config/db");
+const { mongoose } = require("../config/db");
+const { v4: uuidv4 } = require("uuid");
 
-const Bus = sequelize.define(
-  "Bus",
+const BusSchema = new mongoose.Schema(
   {
     busId: {
-      type: DataTypes.UUID,
-      defaultValue: DataTypes.UUIDV4,
-      primaryKey: true,
+      type: String,
+      default: uuidv4,
+      unique: true,
     },
     busNumber: {
-      type: DataTypes.STRING,
-      allowNull: false,
+      type: String,
+      required: true,
       unique: true,
     },
     capacity: {
-      type: DataTypes.INTEGER,
-      allowNull: true,
+      type: Number,
     },
     driverName: {
-      type: DataTypes.STRING,
-      allowNull: true,
+      type: String,
     },
     driverPhone: {
-      type: DataTypes.STRING,
-      allowNull: true,
+      type: String,
     },
   },
   {
     timestamps: true,
-    tableName: "buses",
   }
 );
 
-module.exports = Bus;
+module.exports = mongoose.model("Bus", BusSchema);

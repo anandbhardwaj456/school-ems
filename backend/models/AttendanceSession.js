@@ -1,43 +1,43 @@
-const { DataTypes } = require("sequelize");
-const sequelize = require("../config/db");
+const { mongoose } = require("../config/db");
+const { v4: uuidv4 } = require("uuid");
 
-const AttendanceSession = sequelize.define("AttendanceSession", {
-  sessionId: {
-    type: DataTypes.UUID,
-    defaultValue: DataTypes.UUIDV4,
-    primaryKey: true,
+const AttendanceSessionSchema = new mongoose.Schema(
+  {
+    sessionId: {
+      type: String,
+      default: uuidv4,
+      unique: true,
+    },
+    date: {
+      type: String,
+      required: true,
+    },
+    classId: {
+      type: String,
+      required: true,
+    },
+    sectionId: {
+      type: String,
+      required: true,
+    },
+    teacherId: {
+      type: String,
+    },
+    period: {
+      type: String,
+    },
+    status: {
+      type: String,
+      enum: ["OPEN", "CLOSED"],
+      default: "OPEN",
+    },
+    remarks: {
+      type: String,
+    },
   },
-  date: {
-    type: DataTypes.DATEONLY,
-    allowNull: false,
-  },
-  classId: {
-    type: DataTypes.STRING,
-    allowNull: false,
-  },
-  sectionId: {
-    type: DataTypes.STRING,
-    allowNull: false,
-  },
-  teacherId: {
-    type: DataTypes.UUID,
-    allowNull: true,
-  },
-  period: {
-    type: DataTypes.STRING,
-    allowNull: true,
-  },
-  status: {
-    type: DataTypes.ENUM("OPEN", "CLOSED"),
-    defaultValue: "OPEN",
-  },
-  remarks: {
-    type: DataTypes.TEXT,
-    allowNull: true,
-  },
-}, {
-  timestamps: true,
-  tableName: "attendance_sessions",
-});
+  {
+    timestamps: true,
+  }
+);
 
-module.exports = AttendanceSession;
+module.exports = mongoose.model("AttendanceSession", AttendanceSessionSchema);

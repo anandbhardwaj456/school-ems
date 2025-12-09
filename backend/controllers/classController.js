@@ -1,4 +1,3 @@
-const { Op } = require("sequelize");
 const Class = require("../models/Class");
 const Section = require("../models/Section");
 const Teacher = require("../models/Teacher");
@@ -20,7 +19,7 @@ exports.createClass = async (req, res) => {
         .json({ success: false, message: "Class name is required" });
     }
 
-    const existing = await Class.findOne({ where: { name, academicYear } });
+    const existing = await Class.findOne({ name, academicYear });
     if (existing) {
       return res.status(400).json({
         success: false,
@@ -52,14 +51,11 @@ exports.listClasses = async (req, res) => {
 
     const { academicYear, status } = req.query;
 
-    const where = {};
-    if (academicYear) where.academicYear = academicYear;
-    if (status) where.status = status;
+    const filter = {};
+    if (academicYear) filter.academicYear = academicYear;
+    if (status) filter.status = status;
 
-    const classes = await Class.findAll({
-      where,
-      order: [["name", "ASC"]],
-    });
+    const classes = await Class.find(filter).sort({ name: 1 });
 
     res.json({ success: true, data: classes });
   } catch (err) {
@@ -79,13 +75,7 @@ exports.getClassById = async (req, res) => {
 
     const { id } = req.params;
 
-    const klass = await Class.findByPk(id, {
-      include: [
-        {
-          model: Section,
-        },
-      ],
-    });
+    const klass = await Class.findOne({ classId: id });
 
     if (!klass) {
       return res
@@ -93,7 +83,9 @@ exports.getClassById = async (req, res) => {
         .json({ success: false, message: "Class not found" });
     }
 
-    res.json({ success: true, data: klass });
+    const sections = await Section.find({ classId: id }).sort({ name: 1 });
+
+    res.json({ success: true, data: { ...klass.toObject(), sections } });
   } catch (err) {
     console.error("Get class error:", err.message);
     res.status(500).json({ success: false, message: "Internal Server Error" });
@@ -111,7 +103,7 @@ exports.updateClass = async (req, res) => {
     const { id } = req.params;
     const { name, displayName, academicYear, status } = req.body;
 
-    const klass = await Class.findByPk(id);
+    const klass = await Class.findOne({ classId: id });
     if (!klass) {
       return res
         .status(404)
@@ -142,7 +134,7 @@ exports.deleteClass = async (req, res) => {
 
     const { id } = req.params;
 
-    const klass = await Class.findByPk(id);
+    const klass = await Class.findOne({ classId: id });
     if (!klass) {
       return res
         .status(404)
@@ -171,10 +163,7 @@ exports.listSectionsForClass = async (req, res) => {
 
     const { classId } = req.params;
 
-    const sections = await Section.findAll({
-      where: { classId },
-      order: [["name", "ASC"]],
-    });
+    const sections = await Section.find({ classId }).sort({ name: 1 });
 
     res.json({ success: true, data: sections });
   } catch (err) {
@@ -200,7 +189,7 @@ exports.createSection = async (req, res) => {
         .json({ success: false, message: "Section name is required" });
     }
 
-    const klass = await Class.findByPk(classId);
+    const klass = await Class.findOne({ classId });
     if (!klass) {
       return res
         .status(404)
@@ -208,7 +197,7 @@ exports.createSection = async (req, res) => {
     }
 
     if (classTeacherId) {
-      const teacher = await Teacher.findByPk(classTeacherId);
+      const teacher = await Teacher.findOne({ teacherId: classTeacherId });
       if (!teacher) {
         return res
           .status(400)
@@ -216,7 +205,7 @@ exports.createSection = async (req, res) => {
       }
     }
 
-    const existing = await Section.findOne({ where: { classId, name } });
+    const existing = await Section.findOne({ classId, name });
     if (existing) {
       return res.status(400).json({
         success: false,
@@ -254,7 +243,6 @@ exports.updateSection = async (req, res) => {
     const { sectionId } = req.params;
     const { name, capacity, classTeacherId, status } = req.body;
 
-    const section = await Section.findByPk(sectionId);
     if (!section) {
       return res
         .status(404)
@@ -262,7 +250,7 @@ exports.updateSection = async (req, res) => {
     }
 
     if (classTeacherId) {
-      const teacher = await Teacher.findByPk(classTeacherId);
+      const teacher = await Teacher.findOne({ teacherId: classTeacherId });
       if (!teacher) {
         return res
           .status(400)
@@ -294,7 +282,7 @@ exports.deleteSection = async (req, res) => {
 
     const { sectionId } = req.params;
 
-    const section = await Section.findByPk(sectionId);
+    const section = await Section.findOne({ sectionId });
     if (!section) {
       return res
         .status(404)
@@ -330,14 +318,14 @@ exports.assignClassTeacher = async (req, res) => {
       });
     }
 
-    const section = await Section.findByPk(sectionId);
+    const section = await Section.findOne({ sectionId });
     if (!section) {
       return res
         .status(404)
         .json({ success: false, message: "Section not found" });
     }
 
-    const teacher = await Teacher.findByPk(teacherId);
+    const teacher = await Teacher.findOne({ teacherId });
     if (!teacher) {
       return res
         .status(400)

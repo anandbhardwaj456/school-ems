@@ -1,27 +1,25 @@
-const { DataTypes } = require("sequelize");
-const sequelize = require("../config/db");
+const { mongoose } = require("../config/db");
+const { v4: uuidv4 } = require("uuid");
 
-const BusRouteAssignment = sequelize.define(
-  "BusRouteAssignment",
+const BusRouteAssignmentSchema = new mongoose.Schema(
   {
     id: {
-      type: DataTypes.UUID,
-      defaultValue: DataTypes.UUIDV4,
-      primaryKey: true,
+      type: String,
+      default: uuidv4,
+      unique: true,
     },
     busId: {
-      type: DataTypes.UUID,
-      allowNull: false,
+      type: String,
+      required: true,
     },
     routeId: {
-      type: DataTypes.UUID,
-      allowNull: false,
+      type: String,
+      required: true,
     },
   },
   {
     timestamps: true,
-    tableName: "bus_route_assignments",
   }
 );
 
-module.exports = BusRouteAssignment;
+module.exports = mongoose.model("BusRouteAssignment", BusRouteAssignmentSchema);

@@ -16,7 +16,7 @@ passport.use(
     },
     async (accessToken, refreshToken, profile, done) => {
       try {
-        let user = await User.findOne({ where: { googleId: profile.id } });
+        let user = await User.findOne({ googleId: profile.id });
 
         if (!user) {
           const email = profile.emails?.[0]?.value || null;
@@ -56,7 +56,7 @@ passport.serializeUser((user, done) => {
 
 passport.deserializeUser(async (id, done) => {
   try {
-    const user = await User.findByPk(id);
+    const user = await User.findOne({ userId: id });
     done(null, user || null);
   } catch (err) {
     done(err, null);

@@ -1,4 +1,3 @@
-const { Op } = require("sequelize");
 const User = require("../models/User");
 const Teacher = require("../models/Teacher");
 
@@ -25,7 +24,7 @@ exports.createTeacher = async (req, res) => {
       });
     }
 
-    const existingUser = email ? await User.findOne({ where: { email } }) : null;
+    const existingUser = email ? await User.findOne({ email }) : null;
     if (existingUser) {
       return res.status(400).json({
         success: false,
@@ -77,41 +76,42 @@ exports.listTeachers = async (req, res) => {
 
     const { search, page = 1, limit = 10 } = req.query;
 
-    const whereUser = { role: "teacher" };
+    const userFilter = { role: "teacher" };
     if (search) {
-      whereUser[Op.or] = [
-        { fullName: { [Op.like]: `%${search}%` } },
-        { email: { [Op.like]: `%${search}%` } },
-      ];
+      const regex = new RegExp(search, "i");
+      userFilter.$or = [{ fullName: regex }, { email: regex }];
     }
 
     const pageNum = parseInt(page, 10) || 1;
     const limitNum = parseInt(limit, 10) || 10;
-    const offset = (pageNum - 1) * limitNum;
+    const skip = (pageNum - 1) * limitNum;
 
-    const result = await Teacher.findAndCountAll({
-      include: [
-        {
-          model: User,
-          as: "user",
-          where: whereUser,
-          required: true,
-          attributes: ["userId", "fullName", "email", "phone", "role"],
-        },
-      ],
-      order: [["createdAt", "DESC"]],
-      offset,
-      limit: limitNum,
+    const users = await User.find(userFilter)
+      .sort({ createdAt: -1 })
+      .skip(skip)
+      .limit(limitNum)
+      .select("userId fullName email phone role");
+
+    const userIds = users.map((u) => u.userId);
+
+    const teachers = await Teacher.find({ userId: { $in: userIds } });
+
+    const teachersWithUser = teachers.map((t) => {
+      const tObj = t.toObject();
+      const user = users.find((u) => u.userId === t.userId);
+      return { ...tObj, user };
     });
+
+    const total = await User.countDocuments(userFilter);
 
     res.json({
       success: true,
-      data: result.rows,
+      data: teachersWithUser,
       pagination: {
         page: pageNum,
         limit: limitNum,
-        total: result.count,
-        totalPages: Math.ceil(result.count / limitNum) || 1,
+        total,
+        totalPages: Math.ceil(total / limitNum) || 1,
       },
     });
   } catch (err) {
@@ -131,15 +131,7 @@ exports.getTeacherById = async (req, res) => {
 
     const { id } = req.params;
 
-    const teacher = await Teacher.findByPk(id, {
-      include: [
-        {
-          model: User,
-          as: "user",
-          attributes: ["userId", "fullName", "email", "phone", "role"],
-        },
-      ],
-    });
+    const teacher = await Teacher.findOne({ teacherId: id });
 
     if (!teacher) {
       return res
@@ -147,7 +139,11 @@ exports.getTeacherById = async (req, res) => {
         .json({ success: false, message: "Teacher not found" });
     }
 
-    res.json({ success: true, data: teacher });
+    const user = await User.findOne({ userId: teacher.userId }).select(
+      "userId fullName email phone role"
+    );
+
+    res.json({ success: true, data: { ...teacher.toObject(), user } });
   } catch (err) {
     console.error("Get teacher error:", err.message);
     res.status(500).json({ success: false, message: "Internal Server Error" });
@@ -165,7 +161,7 @@ exports.updateTeacher = async (req, res) => {
     const { id } = req.params;
     const { employeeCode, designation, department } = req.body;
 
-    const teacher = await Teacher.findByPk(id);
+    const teacher = await Teacher.findOne({ teacherId: id });
     if (!teacher) {
       return res
         .status(404)
@@ -196,14 +192,14 @@ exports.deactivateTeacher = async (req, res) => {
 
     const { id } = req.params;
 
-    const teacher = await Teacher.findByPk(id);
+    const teacher = await Teacher.findOne({ teacherId: id });
     if (!teacher) {
       return res
         .status(404)
         .json({ success: false, message: "Teacher not found" });
     }
 
-    const user = await User.findByPk(teacher.userId);
+    const user = await User.findOne({ userId: teacher.userId });
     if (user) {
       user.isActive = false;
       await user.save();

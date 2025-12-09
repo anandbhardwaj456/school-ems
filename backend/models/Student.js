@@ -1,48 +1,45 @@
-const { DataTypes } = require("sequelize");
-const sequelize = require("../config/db");
+const { mongoose } = require("../config/db");
+const { v4: uuidv4 } = require("uuid");
 
-const Student = sequelize.define("Student", {
-  studentId: {
-    type: DataTypes.UUID,
-    defaultValue: DataTypes.UUIDV4,
-    primaryKey: true
+const StudentSchema = new mongoose.Schema(
+  {
+    studentId: {
+      type: String,
+      default: uuidv4,
+      unique: true,
+    },
+    userId: {
+      type: String,
+      required: true,
+    },
+    admissionNo: {
+      type: String,
+      unique: true,
+    },
+    classId: {
+      type: String,
+    },
+    sectionId: {
+      type: String,
+    },
+    dob: {
+      type: String,
+    },
+    gender: {
+      type: String,
+    },
+    address: {
+      type: String,
+    },
+    status: {
+      type: String,
+      enum: ["ACTIVE", "INACTIVE", "ALUMNI", "TC_ISSUED"],
+      default: "ACTIVE",
+    },
   },
-  userId: {
-    type: DataTypes.UUID,
-    allowNull: false
-  },
-  admissionNo: {
-    type: DataTypes.STRING,
-    allowNull: true,
-    unique: true
-  },
-  classId: {
-    type: DataTypes.STRING,
-    allowNull: true
-  },
-  sectionId: {
-    type: DataTypes.STRING,
-    allowNull: true
-  },
-  dob: {
-    type: DataTypes.DATEONLY,
-    allowNull: true
-  },
-  gender: {
-    type: DataTypes.STRING,
-    allowNull: true
-  },
-  address: {
-    type: DataTypes.TEXT,
-    allowNull: true
-  },
-  status: {
-    type: DataTypes.ENUM("ACTIVE", "INACTIVE", "ALUMNI", "TC_ISSUED"),
-    defaultValue: "ACTIVE"
+  {
+    timestamps: true,
   }
-}, {
-  timestamps: true,
-  tableName: "students"
-});
+);
 
-module.exports = Student;
+module.exports = mongoose.model("Student", StudentSchema);

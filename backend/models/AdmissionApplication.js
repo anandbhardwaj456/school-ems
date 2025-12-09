@@ -1,58 +1,55 @@
-const { DataTypes } = require("sequelize");
-const sequelize = require("../config/db");
+const { mongoose } = require("../config/db");
+const { v4: uuidv4 } = require("uuid");
 
-const AdmissionApplication = sequelize.define("AdmissionApplication", {
-  applicationId: {
-    type: DataTypes.UUID,
-    defaultValue: DataTypes.UUIDV4,
-    primaryKey: true
+const AdmissionApplicationSchema = new mongoose.Schema(
+  {
+    applicationId: {
+      type: String,
+      default: uuidv4,
+      unique: true,
+    },
+    fullName: {
+      type: String,
+      required: true,
+    },
+    email: {
+      type: String,
+    },
+    phone: {
+      type: String,
+    },
+    dob: {
+      type: String,
+    },
+    classAppliedFor: {
+      type: String,
+      required: true,
+    },
+    status: {
+      type: String,
+      enum: [
+        "PENDING",
+        "UNDER_ASSESSMENT",
+        "ASSESSMENT_PASSED",
+        "ASSESSMENT_FAILED",
+        "ACCEPTED",
+        "REJECTED",
+      ],
+      default: "PENDING",
+    },
+    assessmentDate: {
+      type: Date,
+    },
+    assessmentScore: {
+      type: Number,
+    },
+    remarks: {
+      type: String,
+    },
   },
-  fullName: {
-    type: DataTypes.STRING,
-    allowNull: false
-  },
-  email: {
-    type: DataTypes.STRING,
-    allowNull: true
-  },
-  phone: {
-    type: DataTypes.STRING,
-    allowNull: true
-  },
-  dob: {
-    type: DataTypes.DATEONLY,
-    allowNull: true
-  },
-  classAppliedFor: {
-    type: DataTypes.STRING,
-    allowNull: false
-  },
-  status: {
-    type: DataTypes.ENUM(
-      "PENDING",
-      "UNDER_ASSESSMENT",
-      "ASSESSMENT_PASSED",
-      "ASSESSMENT_FAILED",
-      "ACCEPTED",
-      "REJECTED"
-    ),
-    defaultValue: "PENDING"
-  },
-  assessmentDate: {
-    type: DataTypes.DATE,
-    allowNull: true
-  },
-  assessmentScore: {
-    type: DataTypes.FLOAT,
-    allowNull: true
-  },
-  remarks: {
-    type: DataTypes.TEXT,
-    allowNull: true
+  {
+    timestamps: true,
   }
-}, {
-  timestamps: true,
-  tableName: "admission_applications"
-});
+);
 
-module.exports = AdmissionApplication;
+module.exports = mongoose.model("AdmissionApplication", AdmissionApplicationSchema);

@@ -1,46 +1,41 @@
-const { DataTypes } = require("sequelize");
-const sequelize = require("../config/db");
+const { mongoose } = require("../config/db");
+const { v4: uuidv4 } = require("uuid");
 
-const Book = sequelize.define(
-  "Book",
+const BookSchema = new mongoose.Schema(
   {
     bookId: {
-      type: DataTypes.UUID,
-      defaultValue: DataTypes.UUIDV4,
-      primaryKey: true,
+      type: String,
+      default: uuidv4,
+      unique: true,
     },
     title: {
-      type: DataTypes.STRING,
-      allowNull: false,
+      type: String,
+      required: true,
     },
     author: {
-      type: DataTypes.STRING,
-      allowNull: true,
+      type: String,
     },
     isbn: {
-      type: DataTypes.STRING,
-      allowNull: true,
+      type: String,
       unique: true,
     },
     category: {
-      type: DataTypes.STRING,
-      allowNull: true,
+      type: String,
     },
     totalCopies: {
-      type: DataTypes.INTEGER,
-      allowNull: false,
-      defaultValue: 1,
+      type: Number,
+      required: true,
+      default: 1,
     },
     availableCopies: {
-      type: DataTypes.INTEGER,
-      allowNull: false,
-      defaultValue: 1,
+      type: Number,
+      required: true,
+      default: 1,
     },
   },
   {
     timestamps: true,
-    tableName: "books",
   }
 );
 
-module.exports = Book;
+module.exports = mongoose.model("Book", BookSchema);

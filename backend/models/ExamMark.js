@@ -1,35 +1,35 @@
-const { DataTypes } = require("sequelize");
-const sequelize = require("../config/db");
+const { mongoose } = require("../config/db");
+const { v4: uuidv4 } = require("uuid");
 
-const ExamMark = sequelize.define("ExamMark", {
-  markId: {
-    type: DataTypes.UUID,
-    defaultValue: DataTypes.UUIDV4,
-    primaryKey: true,
+const ExamMarkSchema = new mongoose.Schema(
+  {
+    markId: {
+      type: String,
+      default: uuidv4,
+      unique: true,
+    },
+    examId: {
+      type: String,
+      required: true,
+    },
+    studentId: {
+      type: String,
+      required: true,
+    },
+    marksObtained: {
+      type: Number,
+    },
+    attendanceStatus: {
+      type: String,
+      enum: ["PRESENT", "ABSENT", "MEDICAL", "EXEMPTED"],
+    },
+    remarks: {
+      type: String,
+    },
   },
-  examId: {
-    type: DataTypes.UUID,
-    allowNull: false,
-  },
-  studentId: {
-    type: DataTypes.UUID,
-    allowNull: false,
-  },
-  marksObtained: {
-    type: DataTypes.FLOAT,
-    allowNull: true,
-  },
-  attendanceStatus: {
-    type: DataTypes.ENUM("PRESENT", "ABSENT", "MEDICAL", "EXEMPTED"),
-    allowNull: true,
-  },
-  remarks: {
-    type: DataTypes.TEXT,
-    allowNull: true,
-  },
-}, {
-  timestamps: true,
-  tableName: "exam_marks",
-});
+  {
+    timestamps: true,
+  }
+);
 
-module.exports = ExamMark;
+module.exports = mongoose.model("ExamMark", ExamMarkSchema);

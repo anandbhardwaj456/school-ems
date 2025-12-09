@@ -1,59 +1,53 @@
-const { DataTypes } = require("sequelize");
-const sequelize = require("../config/db");
+const { mongoose } = require("../config/db");
+const { v4: uuidv4 } = require("uuid");
 
-const Announcement = sequelize.define(
-  "Announcement",
+const AnnouncementSchema = new mongoose.Schema(
   {
     announcementId: {
-      type: DataTypes.UUID,
-      defaultValue: DataTypes.UUIDV4,
-      primaryKey: true,
+      type: String,
+      default: uuidv4,
+      unique: true,
     },
     title: {
-      type: DataTypes.STRING,
-      allowNull: false,
+      type: String,
+      required: true,
     },
     message: {
-      type: DataTypes.TEXT,
-      allowNull: false,
+      type: String,
+      required: true,
     },
     targetType: {
-      type: DataTypes.ENUM("ALL", "CLASS", "SECTION", "ROLE", "STUDENT"),
-      defaultValue: "ALL",
+      type: String,
+      enum: ["ALL", "CLASS", "SECTION", "ROLE", "STUDENT"],
+      default: "ALL",
     },
     classId: {
-      type: DataTypes.UUID,
-      allowNull: true,
+      type: String,
     },
     sectionId: {
-      type: DataTypes.UUID,
-      allowNull: true,
+      type: String,
     },
     role: {
-      type: DataTypes.ENUM("admin", "teacher", "student", "parent"),
-      allowNull: true,
+      type: String,
+      enum: ["admin", "teacher", "student", "parent"],
     },
     studentId: {
-      type: DataTypes.UUID,
-      allowNull: true,
+      type: String,
     },
     createdBy: {
-      type: DataTypes.UUID,
-      allowNull: false,
+      type: String,
+      required: true,
     },
     validFrom: {
-      type: DataTypes.DATE,
-      allowNull: true,
+      type: Date,
     },
     validTo: {
-      type: DataTypes.DATE,
-      allowNull: true,
+      type: Date,
     },
   },
   {
     timestamps: true,
-    tableName: "announcements",
   }
 );
 
-module.exports = Announcement;
+module.exports = mongoose.model("Announcement", AnnouncementSchema);

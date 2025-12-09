@@ -29,7 +29,7 @@ exports.startConversation = async (req, res) => {
       role: uid === req.user.id ? "ADMIN" : "MEMBER",
     }));
 
-    await ConversationParticipant.bulkCreate(participants);
+    await ConversationParticipant.insertMany(participants);
 
     res.status(201).json({ success: true, data: conv });
   } catch (err) {
@@ -46,7 +46,7 @@ exports.sendMessage = async (req, res) => {
 
     const { conversationId, content, type } = req.body;
 
-    const conv = await Conversation.findByPk(conversationId);
+    const conv = await Conversation.findOne({ conversationId });
     if (!conv) {
       return res
         .status(404)
@@ -75,10 +75,7 @@ exports.listMessages = async (req, res) => {
 
     const { conversationId } = req.params;
 
-    const msgs = await Message.findAll({
-      where: { conversationId },
-      order: [["createdAt", "ASC"]],
-    });
+    const msgs = await Message.find({ conversationId }).sort({ createdAt: 1 });
 
     res.json({ success: true, data: msgs });
   } catch (err) {
@@ -93,17 +90,16 @@ exports.listUserConversations = async (req, res) => {
       return res.status(401).json({ success: false, message: "Unauthorized" });
     }
 
-    const participantRows = await ConversationParticipant.findAll({
-      where: { userId: req.user.id },
+    const participantRows = await ConversationParticipant.find({
+      userId: req.user.id,
     });
 
     const conversationIds = participantRows.map((p) => p.conversationId);
 
     const conversations = conversationIds.length
-      ? await Conversation.findAll({
-          where: { conversationId: conversationIds },
-          order: [["updatedAt", "DESC"]],
-        })
+      ? await Conversation.find({
+          conversationId: { $in: conversationIds },
+        }).sort({ updatedAt: -1 })
       : [];
 
     res.json({ success: true, data: conversations });

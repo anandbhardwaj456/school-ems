@@ -1,51 +1,52 @@
-const { DataTypes } = require("sequelize");
-const sequelize = require("../config/db");
+const { mongoose } = require("../config/db");
+const { v4: uuidv4 } = require("uuid");
 
-const Exam = sequelize.define("Exam", {
-  examId: {
-    type: DataTypes.UUID,
-    defaultValue: DataTypes.UUIDV4,
-    primaryKey: true,
+const ExamSchema = new mongoose.Schema(
+  {
+    examId: {
+      type: String,
+      default: uuidv4,
+      unique: true,
+    },
+    examTypeId: {
+      type: String,
+      required: true,
+    },
+    classId: {
+      type: String,
+      required: true,
+    },
+    sectionId: {
+      type: String,
+      required: true,
+    },
+    subject: {
+      type: String,
+      required: true,
+    },
+    date: {
+      type: String,
+      required: true,
+    },
+    maxMarks: {
+      type: Number,
+      required: true,
+    },
+    teacherId: {
+      type: String,
+    },
+    status: {
+      type: String,
+      enum: ["SCHEDULED", "ONGOING", "COMPLETED", "PUBLISHED"],
+      default: "SCHEDULED",
+    },
+    remarks: {
+      type: String,
+    },
   },
-  examTypeId: {
-    type: DataTypes.UUID,
-    allowNull: false,
-  },
-  classId: {
-    type: DataTypes.STRING,
-    allowNull: false,
-  },
-  sectionId: {
-    type: DataTypes.STRING,
-    allowNull: false,
-  },
-  subject: {
-    type: DataTypes.STRING,
-    allowNull: false,
-  },
-  date: {
-    type: DataTypes.DATEONLY,
-    allowNull: false,
-  },
-  maxMarks: {
-    type: DataTypes.FLOAT,
-    allowNull: false,
-  },
-  teacherId: {
-    type: DataTypes.UUID,
-    allowNull: true,
-  },
-  status: {
-    type: DataTypes.ENUM("SCHEDULED", "ONGOING", "COMPLETED", "PUBLISHED"),
-    defaultValue: "SCHEDULED",
-  },
-  remarks: {
-    type: DataTypes.TEXT,
-    allowNull: true,
-  },
-}, {
-  timestamps: true,
-  tableName: "exams",
-});
+  {
+    timestamps: true,
+  }
+);
 
-module.exports = Exam;
+module.exports = mongoose.model("Exam", ExamSchema);

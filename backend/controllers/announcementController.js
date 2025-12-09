@@ -1,4 +1,3 @@
-const { Op } = require("sequelize");
 const Announcement = require("../models/Announcement");
 
 exports.createAnnouncement = async (req, res) => {
@@ -60,22 +59,17 @@ exports.listAnnouncements = async (req, res) => {
 
     const now = new Date();
 
-    const where = {
-      [Op.or]: [
+    const filter = {
+      $or: [
         { validFrom: null, validTo: null },
         {
-          validFrom: { [Op.lte]: now },
-          [Op.or]: [{ validTo: null }, { validTo: { [Op.gte]: now } }],
+          validFrom: { $lte: now },
+          $or: [{ validTo: null }, { validTo: { $gte: now } }],
         },
       ],
     };
 
-    // Simple generic filter; real targeting logic can be added later
-
-    const anns = await Announcement.findAll({
-      where,
-      order: [["createdAt", "DESC"]],
-    });
+    const anns = await Announcement.find(filter).sort({ createdAt: -1 });
 
     res.json({ success: true, data: anns });
   } catch (err) {
@@ -95,14 +89,14 @@ exports.deleteAnnouncement = async (req, res) => {
 
     const { id } = req.params;
 
-    const ann = await Announcement.findByPk(id);
+    const ann = await Announcement.findOne({ announcementId: id });
     if (!ann) {
       return res
         .status(404)
         .json({ success: false, message: "Announcement not found" });
     }
 
-    await ann.destroy();
+    await Announcement.deleteOne({ announcementId: id });
 
     res.json({ success: true, message: "Announcement deleted" });
   } catch (err) {

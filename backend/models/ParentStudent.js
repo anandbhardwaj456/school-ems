@@ -1,27 +1,28 @@
-const { DataTypes } = require("sequelize");
-const sequelize = require("../config/db");
+const { mongoose } = require("../config/db");
+const { v4: uuidv4 } = require("uuid");
 
-const ParentStudent = sequelize.define("ParentStudent", {
-  id: {
-    type: DataTypes.UUID,
-    defaultValue: DataTypes.UUIDV4,
-    primaryKey: true
+const ParentStudentSchema = new mongoose.Schema(
+  {
+    id: {
+      type: String,
+      default: uuidv4,
+      unique: true,
+    },
+    parentId: {
+      type: String,
+      required: true,
+    },
+    studentId: {
+      type: String,
+      required: true,
+    },
+    relation: {
+      type: String,
+    },
   },
-  parentId: {
-    type: DataTypes.UUID,
-    allowNull: false
-  },
-  studentId: {
-    type: DataTypes.UUID,
-    allowNull: false
-  },
-  relation: {
-    type: DataTypes.STRING,
-    allowNull: true
+  {
+    timestamps: true,
   }
-}, {
-  timestamps: true,
-  tableName: "parent_students"
-});
+);
 
-module.exports = ParentStudent;
+module.exports = mongoose.model("ParentStudent", ParentStudentSchema);

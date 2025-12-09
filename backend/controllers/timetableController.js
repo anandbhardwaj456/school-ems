@@ -23,28 +23,28 @@ exports.createSlot = async (req, res) => {
       room,
     } = req.body;
 
-    const klass = await Class.findByPk(classId);
+    const klass = await Class.findOne({ classId });
     if (!klass) {
       return res
         .status(404)
         .json({ success: false, message: "Class not found" });
     }
 
-    const section = await Section.findByPk(sectionId);
+    const section = await Section.findOne({ sectionId });
     if (!section) {
       return res
         .status(404)
         .json({ success: false, message: "Section not found" });
     }
 
-    const subject = await Subject.findByPk(subjectId);
+    const subject = await Subject.findOne({ subjectId });
     if (!subject) {
       return res
         .status(404)
         .json({ success: false, message: "Subject not found" });
     }
 
-    const teacher = await Teacher.findByPk(teacherId);
+    const teacher = await Teacher.findOne({ teacherId });
     if (!teacher) {
       return res
         .status(404)
@@ -84,9 +84,13 @@ exports.listClassTimetable = async (req, res) => {
 
     const { classId, sectionId } = req.query;
 
-    const slots = await TimetableSlot.findAll({
-      where: { classId, sectionId },
-      order: [["dayOfWeek", "ASC"], ["startTime", "ASC"]],
+    const filter = {};
+    if (classId) filter.classId = classId;
+    if (sectionId) filter.sectionId = sectionId;
+
+    const slots = await TimetableSlot.find(filter).sort({
+      dayOfWeek: 1,
+      startTime: 1,
     });
 
     res.json({ success: true, data: slots });
@@ -107,9 +111,9 @@ exports.listTeacherTimetable = async (req, res) => {
 
     const { teacherId } = req.params;
 
-    const slots = await TimetableSlot.findAll({
-      where: { teacherId },
-      order: [["dayOfWeek", "ASC"], ["startTime", "ASC"]],
+    const slots = await TimetableSlot.find({ teacherId }).sort({
+      dayOfWeek: 1,
+      startTime: 1,
     });
 
     res.json({ success: true, data: slots });
@@ -129,14 +133,14 @@ exports.deleteSlot = async (req, res) => {
 
     const { id } = req.params;
 
-    const slot = await TimetableSlot.findByPk(id);
+    const slot = await TimetableSlot.findOne({ slotId: id });
     if (!slot) {
       return res
         .status(404)
         .json({ success: false, message: "Timetable slot not found" });
     }
 
-    await slot.destroy();
+    await TimetableSlot.deleteOne({ slotId: id });
 
     res.json({ success: true, message: "Timetable slot deleted" });
   } catch (err) {

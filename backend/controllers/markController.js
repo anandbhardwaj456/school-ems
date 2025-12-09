@@ -13,12 +13,12 @@ exports.listMyExams = async (req, res) => {
 
     const { classId, sectionId, status } = req.query;
 
-    const where = { teacherId: req.user.id };
-    if (classId) where.classId = classId;
-    if (sectionId) where.sectionId = sectionId;
-    if (status) where.status = status;
+    const filter = { teacherId: req.user.id };
+    if (classId) filter.classId = classId;
+    if (sectionId) filter.sectionId = sectionId;
+    if (status) filter.status = status;
 
-    const exams = await Exam.findAll({ where, order: [["date", "DESC"]] });
+    const exams = await Exam.find(filter).sort({ date: -1 });
 
     res.json({ success: true, data: exams });
   } catch (err) {
@@ -40,7 +40,7 @@ exports.enterMarks = async (req, res) => {
       });
     }
 
-    const exam = await Exam.findByPk(examId);
+    const exam = await Exam.findOne({ examId });
     if (!exam) {
       return res
         .status(404)
@@ -73,19 +73,20 @@ exports.enterMarks = async (req, res) => {
     for (const e of entries) {
       if (!e.studentId) continue;
 
-      const student = await Student.findByPk(e.studentId);
+      const student = await Student.findOne({ studentId: e.studentId });
       if (!student) continue;
 
-      const [mark] = await ExamMark.findOrCreate({
-        where: { examId, studentId: e.studentId },
-        defaults: {
+      let mark = await ExamMark.findOne({ examId, studentId: e.studentId });
+
+      if (!mark) {
+        mark = await ExamMark.create({
+          examId,
+          studentId: e.studentId,
           marksObtained: e.marksObtained,
           attendanceStatus: e.attendanceStatus || null,
           remarks: e.remarks || null,
-        },
-      });
-
-      if (!mark.isNewRecord) {
+        });
+      } else {
         mark.marksObtained = e.marksObtained;
         mark.attendanceStatus = e.attendanceStatus || null;
         mark.remarks = e.remarks || null;
@@ -133,7 +134,7 @@ exports.getExamMarks = async (req, res) => {
       });
     }
 
-    const marks = await ExamMark.findAll({ where: { examId } });
+    const marks = await ExamMark.find({ examId });
 
     res.json({ success: true, data: marks });
   } catch (err) {

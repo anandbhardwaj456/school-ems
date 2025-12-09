@@ -1,4 +1,3 @@
-const { Op } = require("sequelize");
 const Subject = require("../models/Subject");
 const Class = require("../models/Class");
 const Teacher = require("../models/Teacher");
@@ -23,7 +22,7 @@ exports.createSubject = async (req, res) => {
     }
 
     if (code) {
-      const existing = await Subject.findOne({ where: { code } });
+      const existing = await Subject.findOne({ code });
       if (existing) {
         return res.status(400).json({
           success: false,
@@ -56,19 +55,14 @@ exports.listSubjects = async (req, res) => {
 
     const { search, status } = req.query;
 
-    const where = {};
-    if (status) where.status = status;
+    const filter = {};
+    if (status) filter.status = status;
     if (search) {
-      where[Op.or] = [
-        { name: { [Op.like]: `%${search}%` } },
-        { code: { [Op.like]: `%${search}%` } },
-      ];
+      const regex = new RegExp(search, "i");
+      filter.$or = [{ name: regex }, { code: regex }];
     }
 
-    const subjects = await Subject.findAll({
-      where,
-      order: [["name", "ASC"]],
-    });
+    const subjects = await Subject.find(filter).sort({ name: 1 });
 
     res.json({ success: true, data: subjects });
   } catch (err) {
@@ -88,7 +82,7 @@ exports.updateSubject = async (req, res) => {
     const { id } = req.params;
     const { name, code, status } = req.body;
 
-    const subject = await Subject.findByPk(id);
+    const subject = await Subject.findOne({ subjectId: id });
     if (!subject) {
       return res
         .status(404)
@@ -96,7 +90,7 @@ exports.updateSubject = async (req, res) => {
     }
 
     if (code && code !== subject.code) {
-      const existing = await Subject.findOne({ where: { code } });
+      const existing = await Subject.findOne({ code });
       if (existing) {
         return res.status(400).json({
           success: false,
@@ -128,7 +122,7 @@ exports.deleteSubject = async (req, res) => {
 
     const { id } = req.params;
 
-    const subject = await Subject.findByPk(id);
+    const subject = await Subject.findOne({ subjectId: id });
     if (!subject) {
       return res
         .status(404)
@@ -158,21 +152,21 @@ exports.assignSubjectToClass = async (req, res) => {
     const { classId } = req.params;
     const { subjectId } = req.body;
 
-    const klass = await Class.findByPk(classId);
+    const klass = await Class.findOne({ classId });
     if (!klass) {
       return res
         .status(404)
         .json({ success: false, message: "Class not found" });
     }
 
-    const subject = await Subject.findByPk(subjectId);
+    const subject = await Subject.findOne({ subjectId });
     if (!subject) {
       return res
         .status(404)
         .json({ success: false, message: "Subject not found" });
     }
 
-    const existing = await ClassSubject.findOne({ where: { classId, subjectId } });
+    const existing = await ClassSubject.findOne({ classId, subjectId });
     if (existing) {
       return res.status(400).json({
         success: false,
@@ -204,11 +198,11 @@ exports.listSubjectsForClass = async (req, res) => {
 
     const { classId } = req.params;
 
-    const mappings = await ClassSubject.findAll({ where: { classId } });
+    const mappings = await ClassSubject.find({ classId });
     const subjectIds = mappings.map((m) => m.subjectId);
 
     const subjects = subjectIds.length
-      ? await Subject.findAll({ where: { subjectId: subjectIds } })
+      ? await Subject.find({ subjectId: { $in: subjectIds } })
       : [];
 
     res.json({ success: true, data: subjects });
@@ -231,7 +225,7 @@ exports.assignSubjectToTeacher = async (req, res) => {
     const { teacherId } = req.params;
     const { subjectId, classId } = req.body;
 
-    const teacher = await Teacher.findByPk(teacherId);
+    const teacher = await Teacher.findOne({ teacherId });
     if (!teacher) {
       return res
         .status(404)
@@ -246,7 +240,7 @@ exports.assignSubjectToTeacher = async (req, res) => {
     }
 
     if (classId) {
-      const klass = await Class.findByPk(classId);
+      const klass = await Class.findOne({ classId });
       if (!klass) {
         return res
           .status(404)
@@ -255,7 +249,9 @@ exports.assignSubjectToTeacher = async (req, res) => {
     }
 
     const existing = await TeacherSubject.findOne({
-      where: { teacherId, subjectId, classId: classId || null },
+      teacherId,
+      subjectId,
+      classId: classId || null,
     });
     if (existing) {
       return res.status(400).json({
@@ -288,11 +284,11 @@ exports.listSubjectsForTeacher = async (req, res) => {
 
     const { teacherId } = req.params;
 
-    const mappings = await TeacherSubject.findAll({ where: { teacherId } });
+    const mappings = await TeacherSubject.find({ teacherId });
     const subjectIds = mappings.map((m) => m.subjectId);
 
     const subjects = subjectIds.length
-      ? await Subject.findAll({ where: { subjectId: subjectIds } })
+      ? await Subject.find({ subjectId: { $in: subjectIds } })
       : [];
 
     res.json({ success: true, data: subjects, mappings });

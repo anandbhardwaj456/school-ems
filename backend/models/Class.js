@@ -1,35 +1,32 @@
-const { DataTypes } = require("sequelize");
-const sequelize = require("../config/db");
+const { mongoose } = require("../config/db");
+const { v4: uuidv4 } = require("uuid");
 
-const Class = sequelize.define(
-  "Class",
+const ClassSchema = new mongoose.Schema(
   {
     classId: {
-      type: DataTypes.UUID,
-      defaultValue: DataTypes.UUIDV4,
-      primaryKey: true,
+      type: String,
+      default: uuidv4,
+      unique: true,
     },
     name: {
-      type: DataTypes.STRING,
-      allowNull: false,
+      type: String,
+      required: true,
     },
     displayName: {
-      type: DataTypes.STRING,
-      allowNull: true,
+      type: String,
     },
     academicYear: {
-      type: DataTypes.STRING,
-      allowNull: true,
+      type: String,
     },
     status: {
-      type: DataTypes.ENUM("ACTIVE", "INACTIVE"),
-      defaultValue: "ACTIVE",
+      type: String,
+      enum: ["ACTIVE", "INACTIVE"],
+      default: "ACTIVE",
     },
   },
   {
     timestamps: true,
-    tableName: "classes",
   }
 );
 
-module.exports = Class;
+module.exports = mongoose.model("Class", ClassSchema);

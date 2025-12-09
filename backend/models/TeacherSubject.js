@@ -1,31 +1,28 @@
-const { DataTypes } = require("sequelize");
-const sequelize = require("../config/db");
+const { mongoose } = require("../config/db");
+const { v4: uuidv4 } = require("uuid");
 
-const TeacherSubject = sequelize.define(
-  "TeacherSubject",
+const TeacherSubjectSchema = new mongoose.Schema(
   {
     id: {
-      type: DataTypes.UUID,
-      defaultValue: DataTypes.UUIDV4,
-      primaryKey: true,
+      type: String,
+      default: uuidv4,
+      unique: true,
     },
     teacherId: {
-      type: DataTypes.UUID,
-      allowNull: false,
+      type: String,
+      required: true,
     },
     subjectId: {
-      type: DataTypes.UUID,
-      allowNull: false,
+      type: String,
+      required: true,
     },
     classId: {
-      type: DataTypes.UUID,
-      allowNull: true,
+      type: String,
     },
   },
   {
     timestamps: true,
-    tableName: "teacher_subjects",
   }
 );
 
-module.exports = TeacherSubject;
+module.exports = mongoose.model("TeacherSubject", TeacherSubjectSchema);

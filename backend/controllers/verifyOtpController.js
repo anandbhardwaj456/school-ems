@@ -4,7 +4,7 @@ const User = require("../models/User");
 exports.verifyOtp = async (req, res) => {
   const { userId, otp } = req.body;
 
-  const user = await User.findByPk(userId);
+  const user = await User.findOne({ userId });
   if (!user || user.otp !== otp)
     return res.status(400).json({ success: false, message: "Invalid OTP" });
 

@@ -1,44 +1,46 @@
-const { DataTypes } = require("sequelize");
-const sequelize = require("../config/db");
+const { mongoose } = require("../config/db");
+const { v4: uuidv4 } = require("uuid");
 
-const InviteToken = sequelize.define("InviteToken", {
-  tokenId: {
-    type: DataTypes.UUID,
-    defaultValue: DataTypes.UUIDV4,
-    primaryKey: true
+const InviteTokenSchema = new mongoose.Schema(
+  {
+    tokenId: {
+      type: String,
+      default: uuidv4,
+      unique: true,
+    },
+    token: {
+      type: String,
+      required: true,
+      unique: true,
+    },
+    type: {
+      type: String,
+      enum: ["teacher"],
+      required: true,
+    },
+    email: {
+      type: String,
+    },
+    expiresAt: {
+      type: Date,
+    },
+    maxUses: {
+      type: Number,
+      default: 1,
+    },
+    usedCount: {
+      type: Number,
+      default: 0,
+    },
+    status: {
+      type: String,
+      enum: ["ACTIVE", "EXPIRED", "USED", "REVOKED"],
+      default: "ACTIVE",
+    },
   },
-  token: {
-    type: DataTypes.STRING,
-    allowNull: false,
-    unique: true
-  },
-  type: {
-    type: DataTypes.ENUM("teacher"),
-    allowNull: false
-  },
-  email: {
-    type: DataTypes.STRING,
-    allowNull: true
-  },
-  expiresAt: {
-    type: DataTypes.DATE,
-    allowNull: true
-  },
-  maxUses: {
-    type: DataTypes.INTEGER,
-    defaultValue: 1
-  },
-  usedCount: {
-    type: DataTypes.INTEGER,
-    defaultValue: 0
-  },
-  status: {
-    type: DataTypes.ENUM("ACTIVE", "EXPIRED", "USED", "REVOKED"),
-    defaultValue: "ACTIVE"
+  {
+    timestamps: true,
   }
-}, {
-  timestamps: true,
-  tableName: "invite_tokens"
-});
+);
 
-module.exports = InviteToken;
+module.exports = mongoose.model("InviteToken", InviteTokenSchema);

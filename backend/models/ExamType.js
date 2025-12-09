@@ -1,31 +1,31 @@
-const { DataTypes } = require("sequelize");
-const sequelize = require("../config/db");
+const { mongoose } = require("../config/db");
+const { v4: uuidv4 } = require("uuid");
 
-const ExamType = sequelize.define("ExamType", {
-  examTypeId: {
-    type: DataTypes.UUID,
-    defaultValue: DataTypes.UUIDV4,
-    primaryKey: true,
+const ExamTypeSchema = new mongoose.Schema(
+  {
+    examTypeId: {
+      type: String,
+      default: uuidv4,
+      unique: true,
+    },
+    name: {
+      type: String,
+      required: true,
+    },
+    weightage: {
+      type: Number,
+    },
+    description: {
+      type: String,
+    },
+    isActive: {
+      type: Boolean,
+      default: true,
+    },
   },
-  name: {
-    type: DataTypes.STRING,
-    allowNull: false,
-  },
-  weightage: {
-    type: DataTypes.FLOAT,
-    allowNull: true,
-  },
-  description: {
-    type: DataTypes.TEXT,
-    allowNull: true,
-  },
-  isActive: {
-    type: DataTypes.BOOLEAN,
-    defaultValue: true,
-  },
-}, {
-  timestamps: true,
-  tableName: "exam_types",
-});
+  {
+    timestamps: true,
+  }
+);
 
-module.exports = ExamType;
+module.exports = mongoose.model("ExamType", ExamTypeSchema);

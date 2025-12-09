@@ -46,7 +46,7 @@ exports.moveToAssessment = async (req, res) => {
 
     const { id } = req.params;
 
-    const application = await AdmissionApplication.findByPk(id);
+    const application = await AdmissionApplication.findOne({ applicationId: id });
     if (!application) {
       return res
         .status(404)
@@ -139,7 +139,7 @@ exports.finalDecision = async (req, res) => {
     const { id } = req.params;
     const { accept } = req.body;
 
-    const application = await AdmissionApplication.findByPk(id);
+    const application = await AdmissionApplication.findOne({ applicationId: id });
     if (!application) {
       return res
         .status(404)
@@ -178,9 +178,10 @@ exports.finalDecision = async (req, res) => {
     application.status = "ACCEPTED";
     await application.save();
 
-    const [user] = await User.findOrCreate({
-      where: { email: application.email },
-      defaults: {
+    let user = await User.findOne({ email: application.email });
+
+    if (!user) {
+      user = await User.create({
         fullName: application.fullName,
         email: application.email,
         phone: application.phone,
@@ -189,15 +190,16 @@ exports.finalDecision = async (req, res) => {
         isVerified: true,
         isAdminApproved: true,
         isActive: true,
-      },
-    });
+      });
+    }
 
-    await Student.findOrCreate({
-      where: { userId: user.userId },
-      defaults: {
+    let student = await Student.findOne({ userId: user.userId });
+    if (!student) {
+      student = await Student.create({
+        userId: user.userId,
         classId: application.classAppliedFor,
-      },
-    });
+      });
+    }
 
     res.json({
       success: true,

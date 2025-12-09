@@ -44,11 +44,11 @@ exports.listExamTypes = async (req, res) => {
 
     const { isActive } = req.query;
 
-    const where = {};
-    if (isActive === "true") where.isActive = true;
-    if (isActive === "false") where.isActive = false;
+    const filter = {};
+    if (isActive === "true") filter.isActive = true;
+    if (isActive === "false") filter.isActive = false;
 
-    const types = await ExamType.findAll({ where, order: [["createdAt", "DESC"]] });
+    const types = await ExamType.find(filter).sort({ createdAt: -1 });
 
     res.json({ success: true, data: types });
   } catch (err) {
@@ -70,7 +70,7 @@ exports.updateExamType = async (req, res) => {
     const { id } = req.params;
     const { name, weightage, description } = req.body;
 
-    const type = await ExamType.findByPk(id);
+    const type = await ExamType.findOne({ examTypeId: id });
     if (!type) {
       return res
         .status(404)
@@ -103,7 +103,7 @@ exports.updateExamTypeStatus = async (req, res) => {
     const { id } = req.params;
     const { isActive } = req.body;
 
-    const type = await ExamType.findByPk(id);
+    const type = await ExamType.findOne({ examTypeId: id });
     if (!type) {
       return res
         .status(404)
@@ -189,14 +189,14 @@ exports.listExams = async (req, res) => {
 
     const { classId, sectionId, examTypeId, date, status } = req.query;
 
-    const where = {};
-    if (classId) where.classId = classId;
-    if (sectionId) where.sectionId = sectionId;
-    if (examTypeId) where.examTypeId = examTypeId;
-    if (date) where.date = date;
-    if (status) where.status = status;
+    const filter = {};
+    if (classId) filter.classId = classId;
+    if (sectionId) filter.sectionId = sectionId;
+    if (examTypeId) filter.examTypeId = examTypeId;
+    if (date) filter.date = date;
+    if (status) filter.status = status;
 
-    const exams = await Exam.findAll({ where, order: [["date", "DESC"]] });
+    const exams = await Exam.find(filter).sort({ date: -1 });
 
     res.json({ success: true, data: exams });
   } catch (err) {
@@ -226,7 +226,7 @@ exports.updateExamStatus = async (req, res) => {
       });
     }
 
-    const exam = await Exam.findByPk(id);
+    const exam = await Exam.findOne({ examId: id });
     if (!exam) {
       return res
         .status(404)

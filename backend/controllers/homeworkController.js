@@ -17,28 +17,28 @@ exports.createHomework = async (req, res) => {
     const { classId, sectionId, subjectId, teacherId, title, description, dueDate, attachments } =
       req.body;
 
-    const klass = await Class.findByPk(classId);
+    const klass = await Class.findOne({ classId });
     if (!klass) {
       return res
         .status(404)
         .json({ success: false, message: "Class not found" });
     }
 
-    const section = await Section.findByPk(sectionId);
+    const section = await Section.findOne({ sectionId });
     if (!section) {
       return res
         .status(404)
         .json({ success: false, message: "Section not found" });
     }
 
-    const subject = await Subject.findByPk(subjectId);
+    const subject = await Subject.findOne({ subjectId });
     if (!subject) {
       return res
         .status(404)
         .json({ success: false, message: "Subject not found" });
     }
 
-    const teacher = await Teacher.findByPk(teacherId);
+    const teacher = await Teacher.findOne({ teacherId });
     if (!teacher) {
       return res
         .status(404)
@@ -80,14 +80,11 @@ exports.listHomeworkForClass = async (req, res) => {
 
     const { classId, sectionId } = req.query;
 
-    const where = {};
-    if (classId) where.classId = classId;
-    if (sectionId) where.sectionId = sectionId;
+    const filter = {};
+    if (classId) filter.classId = classId;
+    if (sectionId) filter.sectionId = sectionId;
 
-    const list = await Homework.findAll({
-      where,
-      order: [["createdAt", "DESC"]],
-    });
+    const list = await Homework.find(filter).sort({ createdAt: -1 });
 
     res.json({ success: true, data: list });
   } catch (err) {
@@ -108,7 +105,7 @@ exports.createSubmission = async (req, res) => {
     const { homeworkId, attachments, remarks } = req.body;
     const studentId = req.user.id;
 
-    const hw = await Homework.findByPk(homeworkId);
+    const hw = await Homework.findOne({ homeworkId });
     if (!hw) {
       return res
         .status(404)
@@ -142,9 +139,8 @@ exports.listSubmissionsForHomework = async (req, res) => {
 
     const { homeworkId } = req.params;
 
-    const subs = await HomeworkSubmission.findAll({
-      where: { homeworkId },
-      order: [["submittedAt", "DESC"]],
+    const subs = await HomeworkSubmission.find({ homeworkId }).sort({
+      submittedAt: -1,
     });
 
     res.json({ success: true, data: subs });

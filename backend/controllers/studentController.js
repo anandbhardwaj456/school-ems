@@ -1,4 +1,3 @@
-const { Op } = require("sequelize");
 const { validationResult } = require("express-validator");
 const bcrypt = require("bcryptjs");
 const User = require("../models/User");
@@ -40,7 +39,7 @@ exports.createStudent = async (req, res) => {
     }
 
     if (email) {
-      const existingUser = await User.findOne({ where: { email } });
+      const existingUser = await User.findOne({ email });
       if (existingUser) {
         return res.status(400).json({
           success: false,
@@ -104,7 +103,7 @@ exports.assignClassSection = async (req, res) => {
       });
     }
 
-    const student = await Student.findByPk(id);
+    const student = await Student.findOne({ studentId: id });
     if (!student) {
       return res
         .status(404)
@@ -139,46 +138,49 @@ exports.listStudents = async (req, res) => {
 
     const { classId, sectionId, search, page = 1, limit = 10 } = req.query;
 
-    const whereStudent = {};
-    if (classId) whereStudent.classId = classId;
-    if (sectionId) whereStudent.sectionId = sectionId;
+    const studentFilter = {};
+    if (classId) studentFilter.classId = classId;
+    if (sectionId) studentFilter.sectionId = sectionId;
 
-    const whereUser = {};
+    const userFilter = { role: "student" };
     if (search) {
-      whereUser[Op.or] = [
-        { fullName: { [Op.like]: `%${search}%` } },
-        { email: { [Op.like]: `%${search}%` } },
-      ];
+      const regex = new RegExp(search, "i");
+      userFilter.$or = [{ fullName: regex }, { email: regex }];
     }
 
     const pageNum = parseInt(page, 10) || 1;
     const limitNum = parseInt(limit, 10) || 10;
-    const offset = (pageNum - 1) * limitNum;
+    const skip = (pageNum - 1) * limitNum;
 
-    const result = await Student.findAndCountAll({
-      where: whereStudent,
-      include: [
-        {
-          model: User,
-          as: "user",
-          where: whereUser,
-          required: Object.keys(whereUser).length > 0,
-          attributes: ["userId", "fullName", "email", "phone", "role"],
-        },
-      ],
-      order: [["createdAt", "DESC"]],
-      offset,
-      limit: limitNum,
+    const users = await User.find(userFilter)
+      .sort({ createdAt: -1 })
+      .skip(skip)
+      .limit(limitNum)
+      .select("userId fullName email phone role");
+
+    const userIds = users.map((u) => u.userId);
+
+    const students = await Student.find({
+      ...studentFilter,
+      userId: { $in: userIds },
     });
+
+    const studentsWithUser = students.map((s) => {
+      const sObj = s.toObject();
+      const user = users.find((u) => u.userId === s.userId);
+      return { ...sObj, user };
+    });
+
+    const total = await User.countDocuments(userFilter);
 
     res.json({
       success: true,
-      data: result.rows,
+      data: studentsWithUser,
       pagination: {
         page: pageNum,
         limit: limitNum,
-        total: result.count,
-        totalPages: Math.ceil(result.count / limitNum) || 1,
+        total,
+        totalPages: Math.ceil(total / limitNum) || 1,
       },
     });
   } catch (err) {
@@ -200,15 +202,7 @@ exports.getStudentById = async (req, res) => {
 
     const { id } = req.params;
 
-    const student = await Student.findByPk(id, {
-      include: [
-        {
-          model: User,
-          as: "user",
-          attributes: ["userId", "fullName", "email", "phone", "role"],
-        },
-      ],
-    });
+    const student = await Student.findOne({ studentId: id });
 
     if (!student) {
       return res
@@ -216,7 +210,11 @@ exports.getStudentById = async (req, res) => {
         .json({ success: false, message: "Student not found" });
     }
 
-    res.json({ success: true, data: student });
+    const user = await User.findOne({ userId: student.userId }).select(
+      "userId fullName email phone role"
+    );
+
+    res.json({ success: true, data: { ...student.toObject(), user } });
   } catch (err) {
     console.error("Get student error:", err.message);
     res
@@ -236,7 +234,7 @@ exports.updateStudent = async (req, res) => {
     const { id } = req.params;
     const { admissionNo, classId, sectionId, dob, gender, address } = req.body;
 
-    const student = await Student.findByPk(id);
+    const student = await Student.findOne({ studentId: id });
     if (!student) {
       return res
         .status(404)

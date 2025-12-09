@@ -62,7 +62,7 @@ exports.registerTeacherWithInvite = async (req, res) => {
         .json({ success: false, message: "Invite token is required" });
     }
 
-    const invite = await InviteToken.findOne({ where: { token } });
+    const invite = await InviteToken.findOne({ token });
 
     if (!invite || invite.status !== "ACTIVE") {
       return res
@@ -103,7 +103,7 @@ exports.registerTeacherWithInvite = async (req, res) => {
     }
 
     if (email) {
-      const existing = await User.findOne({ where: { email } });
+      const existing = await User.findOne({ email });
       if (existing) {
         return res.status(400).json({
           success: false,
