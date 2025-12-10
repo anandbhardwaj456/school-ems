@@ -9,6 +9,10 @@ const getApiUrl = () => {
     // Ensure it ends with /api
     return envUrl.endsWith("/api") ? envUrl : `${envUrl}/api`;
   }
+  // Default to deployed backend if no env var (for production)
+  if (import.meta.env.PROD) {
+    return "https://school-ems.onrender.com/api";
+  }
   return "http://localhost:5000/api";
 };
 
