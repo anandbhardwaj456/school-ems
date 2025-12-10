@@ -51,10 +51,19 @@ app.use((req, res, next) => {
 
 // Routes
 console.log("📋 Registering routes...");
-app.use("/api/setup", setupRoutes); // Setup routes (create first admin)
-console.log("✅ Setup routes registered at /api/setup");
-app.use("/api/auth", authRoutes);
-console.log("✅ Auth routes registered at /api/auth");
+try {
+  app.use("/api/setup", setupRoutes); // Setup routes (create first admin)
+  console.log("✅ Setup routes registered at /api/setup");
+} catch (err) {
+  console.error("❌ Failed to register setup routes:", err);
+}
+
+try {
+  app.use("/api/auth", authRoutes);
+  console.log("✅ Auth routes registered at /api/auth");
+} catch (err) {
+  console.error("❌ Failed to register auth routes:", err);
+}
 app.use("/api/admissions", admissionRoutes);
 app.use("/api/students", studentRoutes);
 app.use("/api/attendance", attendanceRoutes);
@@ -86,10 +95,20 @@ app.get("/", (req, res) => {
   res.json({ 
     message: "🚀 EMS Backend is running...",
     version: "1.0.0",
+    timestamp: new Date().toISOString(),
     endpoints: {
-      health: "/health",
-      auth: "/api/auth",
-      setup: "/api/setup"
+      health: "GET /health",
+      root: "GET /",
+      auth: {
+        test: "GET /api/auth/test",
+        login: "POST /api/auth/login",
+        register: "POST /api/auth/register",
+        me: "GET /api/auth/me"
+      },
+      setup: {
+        test: "GET /api/setup/test",
+        createAdmin: "POST /api/setup/create-first-admin"
+      }
     }
   });
 });
