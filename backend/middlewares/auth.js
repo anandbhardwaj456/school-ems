@@ -3,8 +3,11 @@ const User = require("../models/User");
 
 module.exports = async (req, res, next) => {
   try {
-    const authHeader = req.headers["authorization"] || "";
+    // Check both lowercase and original case (Express normalizes to lowercase, but be safe)
+    const authHeader = req.headers["authorization"] || req.headers["Authorization"] || "";
     const token = authHeader.startsWith("Bearer ")
+      ? authHeader.substring(7)
+      : authHeader.startsWith("bearer ")
       ? authHeader.substring(7)
       : null;
 
@@ -23,7 +26,8 @@ module.exports = async (req, res, next) => {
 
     const decoded = jwt.verify(token, secret);
 
-    const user = await User.findByPk(decoded.id);
+    // JWT was generated with userId as "id" in the payload; look up by userId field
+    const user = await User.findOne({ userId: decoded.id });
     if (!user || !user.isActive) {
       return res
         .status(401)

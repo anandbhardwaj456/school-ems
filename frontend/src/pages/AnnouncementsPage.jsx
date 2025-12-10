@@ -19,7 +19,7 @@ export default function AnnouncementsPage() {
     setError("");
     try {
       const res = await api.get("/announcements");
-      setAnnouncements(res.data || []);
+      setAnnouncements(res.data?.data || []);
     } catch (err) {
       setError(
         err.response?.data?.message || "Failed to load announcements from server."

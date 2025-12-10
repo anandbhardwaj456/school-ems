@@ -29,7 +29,13 @@ export default function HomeworkPage() {
       if (cId) params.classId = cId;
       if (sId) params.sectionId = sId;
       const res = await api.get("/homework", { params });
-      setHomeworkList(res.data || []);
+      const payload = res.data;
+      const list = Array.isArray(payload?.data)
+        ? payload.data
+        : Array.isArray(payload)
+        ? payload
+        : [];
+      setHomeworkList(list);
     } catch (err) {
       setError(
         err.response?.data?.message || "Failed to load homework from server."

@@ -20,7 +20,7 @@ export default function MessagesPage() {
     setConversationsError("");
     try {
       const res = await api.get("/messages/conversations");
-      setConversations(res.data || []);
+      setConversations(res.data?.data || []);
     } catch (err) {
       setConversationsError(
         err.response?.data?.message ||
@@ -37,7 +37,7 @@ export default function MessagesPage() {
     setMessagesError("");
     try {
       const res = await api.get(`/messages/conversations/${conversationId}/messages`);
-      setMessages(res.data || []);
+      setMessages(res.data?.data || []);
     } catch (err) {
       setMessagesError(
         err.response?.data?.message || "Failed to load messages from server."

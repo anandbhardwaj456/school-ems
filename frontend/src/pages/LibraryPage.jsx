@@ -26,7 +26,13 @@ export default function LibraryPage() {
     setBooksError("");
     try {
       const res = await api.get("/library/books");
-      setBooks(res.data || []);
+      const payload = res.data;
+      const list = Array.isArray(payload?.data)
+        ? payload.data
+        : Array.isArray(payload)
+        ? payload
+        : [];
+      setBooks(list);
     } catch (err) {
       setBooksError(
         err.response?.data?.message || "Failed to load books from server."
