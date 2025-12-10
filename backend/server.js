@@ -27,7 +27,12 @@ const setupRoutes = require("./routes/setupRoutes");
 dotenv.config();
 
 // Load passport strategies BEFORE using passport
-require("./config/passport");
+try {
+  require("./config/passport");
+  console.log("✅ Passport configured");
+} catch (err) {
+  console.error("⚠️  Passport configuration error (non-critical):", err.message);
+}
 
 const app = express();
 
@@ -51,11 +56,29 @@ app.use((req, res, next) => {
 
 // Routes
 console.log("📋 Registering routes...");
+
+// Test route before other routes to verify server is working
+app.get("/api/test", (req, res) => {
+  res.json({ 
+    success: true, 
+    message: "API is working", 
+    timestamp: new Date().toISOString(),
+    routes: {
+      health: "GET /health",
+      authTest: "GET /api/auth/test",
+      authLogin: "POST /api/auth/login",
+      setupTest: "GET /api/setup/test",
+      setupCreateAdmin: "POST /api/setup/create-first-admin"
+    }
+  });
+});
+
 try {
   app.use("/api/setup", setupRoutes); // Setup routes (create first admin)
   console.log("✅ Setup routes registered at /api/setup");
 } catch (err) {
   console.error("❌ Failed to register setup routes:", err);
+  console.error(err.stack);
 }
 
 try {
@@ -63,6 +86,7 @@ try {
   console.log("✅ Auth routes registered at /api/auth");
 } catch (err) {
   console.error("❌ Failed to register auth routes:", err);
+  console.error(err.stack);
 }
 app.use("/api/admissions", admissionRoutes);
 app.use("/api/students", studentRoutes);
@@ -115,16 +139,28 @@ app.get("/", (req, res) => {
 
 // Error handling middleware (should be after routes)
 app.use((req, res, next) => {
+  console.error(`❌ 404 - Route not found: ${req.method} ${req.path}`);
+  console.error(`   Original URL: ${req.originalUrl}`);
+  console.error(`   Query:`, req.query);
+  console.error(`   Body:`, req.body);
   res.status(404).json({
     success: false,
     message: `Route not found: ${req.method} ${req.path}`,
+    originalUrl: req.originalUrl,
     availableRoutes: {
       health: "GET /health",
       root: "GET /",
+      apiTest: "GET /api/test",
       auth: {
+        test: "GET /api/auth/test",
+        loginTest: "POST /api/auth/login-test",
         login: "POST /api/auth/login",
         register: "POST /api/auth/register",
         me: "GET /api/auth/me"
+      },
+      setup: {
+        test: "GET /api/setup/test",
+        createAdmin: "POST /api/setup/create-first-admin"
       }
     }
   });

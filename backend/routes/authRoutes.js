@@ -16,6 +16,17 @@ router.get("/test", (req, res) => {
   res.json({ message: "Auth routes are working", timestamp: new Date().toISOString() });
 });
 
+// Simple login test route (without validation) to debug
+router.post("/login-test", async (req, res) => {
+  console.log("Login test route hit:", req.body);
+  res.json({ 
+    success: true, 
+    message: "Login route is accessible",
+    body: req.body,
+    timestamp: new Date().toISOString()
+  });
+});
+
 router.post(
   "/register",
   [body("fullName").notEmpty(), body("password").isLength({ min: 6 })],
@@ -34,11 +45,38 @@ router.post(
 
 router.post("/verify-otp", verifyOtp);
 
-router.post(
-  "/login",
-  [body("email").isEmail(), body("password").isLength({ min: 6 })],
-  loginUser
-);
+// Login route - simplified to avoid express-validator issues
+router.post("/login", async (req, res, next) => {
+  console.log("Login route accessed - Method:", req.method, "Path:", req.path);
+  console.log("Request body:", req.body);
+  
+  // Basic validation
+  const { email, password } = req.body;
+  
+  if (!email || !password) {
+    return res.status(400).json({
+      success: false,
+      message: "Email and password are required"
+    });
+  }
+  
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+    return res.status(400).json({
+      success: false,
+      message: "Invalid email format"
+    });
+  }
+  
+  if (password.length < 6) {
+    return res.status(400).json({
+      success: false,
+      message: "Password must be at least 6 characters"
+    });
+  }
+  
+  // Pass to login controller
+  next();
+}, loginUser);
 
 router.post("/logout", logoutUser);
 
