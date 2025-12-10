@@ -1,7 +1,19 @@
 import axios from "axios";
 
+// Get API URL from environment variable
+// If VITE_API_URL is set, use it (should include /api)
+// Otherwise, default to localhost
+const getApiUrl = () => {
+  const envUrl = import.meta.env.VITE_API_URL;
+  if (envUrl) {
+    // Ensure it ends with /api
+    return envUrl.endsWith("/api") ? envUrl : `${envUrl}/api`;
+  }
+  return "http://localhost:5000/api";
+};
+
 const api = axios.create({
-  baseURL: "http://localhost:5000/api",
+  baseURL: getApiUrl(),
 });
 
 api.interceptors.request.use(

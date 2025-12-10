@@ -1,166 +1,362 @@
 import React, { useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
+import { useAuth } from "../contexts/AuthContext";
 import api from "../api";
+import Button from "../components/Button";
+import FormInput from "../components/FormInput";
+import Modal from "../components/Modal";
+import { useToast } from "../components/ToastProvider";
 
 export default function RegisterPage() {
-  const [fullName, setFullName] = useState("");
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [confirmPassword, setConfirmPassword] = useState("");
-  const [role, setRole] = useState("teacher");
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState("");
-  const [success, setSuccess] = useState("");
+  const { isAdmin } = useAuth();
   const navigate = useNavigate();
+  const { showToast } = useToast();
+  
+  const [formData, setFormData] = useState({
+    fullName: "",
+    email: "",
+    role: "student",
+    phone: "",
+    password: "",
+    confirmPassword: "",
+    status: "active",
+    // Student-specific fields
+    classId: "",
+    sectionId: "",
+    admissionNo: "",
+    parentContact: "",
+    // Parent-specific fields
+    childLinking: "",
+  });
+  
+  const [errors, setErrors] = useState({});
+  const [loading, setLoading] = useState(false);
+  const [showSuccessModal, setShowSuccessModal] = useState(false);
+
+  // Redirect if not admin
+  React.useEffect(() => {
+    if (!isAdmin) {
+      showToast("Only administrators can create new users", "error");
+      navigate("/", { replace: true });
+    }
+  }, [isAdmin, navigate, showToast]);
+
+  const validateForm = () => {
+    const newErrors = {};
+    
+    // Full Name
+    if (!formData.fullName.trim()) {
+      newErrors.fullName = "Full name is required";
+    }
+    
+    // Email
+    if (!formData.email) {
+      newErrors.email = "Email is required";
+    } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
+      newErrors.email = "Please enter a valid email address";
+    }
+    
+    // Password
+    if (!formData.password) {
+      newErrors.password = "Password is required";
+    } else if (formData.password.length < 6) {
+      newErrors.password = "Password must be at least 6 characters";
+    }
+    
+    // Confirm Password
+    if (!formData.confirmPassword) {
+      newErrors.confirmPassword = "Please confirm your password";
+    } else if (formData.password !== formData.confirmPassword) {
+      newErrors.confirmPassword = "Passwords do not match";
+    }
+    
+    // Role-specific validations
+    if (formData.role === "student") {
+      if (!formData.classId) {
+        newErrors.classId = "Class is required for students";
+      }
+      if (!formData.admissionNo) {
+        newErrors.admissionNo = "Admission number is required";
+      }
+    }
+    
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setError("");
-    setSuccess("");
-
-    if (password !== confirmPassword) {
-      setError("Passwords do not match.");
+    
+    if (!validateForm()) {
       return;
     }
 
     setLoading(true);
     try {
-      const res = await api.post("/auth/register", {
-        fullName,
-        email,
-        password,
-        role,
-      });
+      const payload = {
+        fullName: formData.fullName,
+        email: formData.email,
+        password: formData.password,
+        role: formData.role,
+        phone: formData.phone || undefined,
+        status: formData.status,
+      };
 
-      const userId = res.data?.userId;
-      setSuccess(
-        "Registration successful. Please verify the OTP sent to your email/phone."
-      );
-
-      if (userId) {
-        setTimeout(
-          () =>
-            navigate(
-              `/verify-otp?userId=${encodeURIComponent(
-                userId
-              )}&email=${encodeURIComponent(email)}`
-            ),
-          800
-        );
+      // Add role-specific fields
+      if (formData.role === "student") {
+        payload.classId = formData.classId;
+        payload.sectionId = formData.sectionId;
+        payload.admissionNo = formData.admissionNo;
+        payload.parentContact = formData.parentContact || undefined;
       }
+
+      if (formData.role === "parent") {
+        payload.childLinking = formData.childLinking || undefined;
+      }
+
+      await api.post("/auth/register", payload);
+      
+      showToast("User created successfully", "success");
+      setShowSuccessModal(true);
+      
+      // Reset form
+      setFormData({
+        fullName: "",
+        email: "",
+        role: "student",
+        phone: "",
+        password: "",
+        confirmPassword: "",
+        status: "active",
+        classId: "",
+        sectionId: "",
+        admissionNo: "",
+        parentContact: "",
+        childLinking: "",
+      });
     } catch (err) {
-      setError(
-        err.response?.data?.message || "Registration failed. Please try again."
-      );
+      const errorMessage = err.response?.data?.message || "Failed to create user";
+      
+      if (errorMessage.includes("email") && errorMessage.includes("unique")) {
+        showToast("Email already exists. Please use a different email.", "error");
+        setErrors({ ...errors, email: "Email already registered" });
+      } else {
+        showToast(errorMessage, "error");
+      }
     } finally {
       setLoading(false);
     }
   };
 
+  const handleFieldChange = (field, value) => {
+    setFormData({ ...formData, [field]: value });
+    // Clear error for this field when user starts typing
+    if (errors[field]) {
+      setErrors({ ...errors, [field]: "" });
+    }
+  };
+
+  if (!isAdmin) {
+    return null; // Will redirect via useEffect
+  }
+
   return (
-    <div className="min-h-screen flex items-center justify-center bg-slate-100 px-4">
-      <div className="w-full max-w-md bg-white shadow-md rounded-lg p-6">
-        <h2 className="text-xl font-semibold text-slate-800 mb-1">
-          SmartSkul EMS
-        </h2>
-        <p className="text-sm text-slate-500 mb-6">Create a new account</p>
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 px-4 py-8">
+      <div className="max-w-4xl mx-auto">
+        {/* Header */}
+        <div className="text-center mb-8">
+          <h1 className="text-3xl font-bold text-primary-700 mb-2">SmartSkul EMS</h1>
+          <h2 className="text-2xl font-semibold text-slate-800">Create New User</h2>
+          <p className="text-sm text-slate-600 mt-2">Add a new user to the system</p>
+        </div>
 
-        {error && (
-          <div className="mb-4 text-sm text-red-600 bg-red-50 border border-red-200 rounded-md px-3 py-2">
-            {error}
-          </div>
-        )}
-
-        {success && (
-          <div className="mb-4 text-sm text-emerald-700 bg-emerald-50 border border-emerald-200 rounded-md px-3 py-2">
-            {success}
-          </div>
-        )}
-
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div>
-            <label className="block text-sm font-medium text-slate-700 mb-1">
-              Full Name
-            </label>
-            <input
-              type="text"
-              className="w-full px-3 py-2 border border-slate-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
-              value={fullName}
-              onChange={(e) => setFullName(e.target.value)}
-              required
-            />
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-slate-700 mb-1">
-              Email
-            </label>
-            <input
-              type="email"
-              className="w-full px-3 py-2 border border-slate-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              required
-            />
-          </div>
-
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+        {/* Registration Form */}
+        <div className="bg-white rounded-lg shadow-lg border border-slate-200 p-8">
+          <form onSubmit={handleSubmit} className="space-y-6">
+            {/* Basic Information */}
             <div>
-              <label className="block text-sm font-medium text-slate-700 mb-1">
-                Password
-              </label>
-              <input
-                type="password"
-                className="w-full px-3 py-2 border border-slate-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                required
-              />
+              <h3 className="text-lg font-semibold text-slate-800 mb-4">Basic Information</h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <FormInput
+                  label="Full Name"
+                  name="fullName"
+                  value={formData.fullName}
+                  onChange={(e) => handleFieldChange("fullName", e.target.value)}
+                  error={errors.fullName}
+                  required
+                />
+                <FormInput
+                  label="Email"
+                  name="email"
+                  type="email"
+                  value={formData.email}
+                  onChange={(e) => handleFieldChange("email", e.target.value)}
+                  error={errors.email}
+                  required
+                />
+                <FormInput
+                  label="Phone"
+                  name="phone"
+                  type="tel"
+                  value={formData.phone}
+                  onChange={(e) => handleFieldChange("phone", e.target.value)}
+                  placeholder="Optional"
+                />
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 mb-1">
+                    Role <span className="text-red-500">*</span>
+                  </label>
+                  <select
+                    name="role"
+                    value={formData.role}
+                    onChange={(e) => handleFieldChange("role", e.target.value)}
+                    className="w-full px-3 py-2 border border-slate-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
+                    required
+                  >
+                    <option value="teacher">Teacher</option>
+                    <option value="student">Student</option>
+                    <option value="parent">Parent</option>
+                    <option value="admin">Admin</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 mb-1">
+                    Status <span className="text-red-500">*</span>
+                  </label>
+                  <select
+                    name="status"
+                    value={formData.status}
+                    onChange={(e) => handleFieldChange("status", e.target.value)}
+                    className="w-full px-3 py-2 border border-slate-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
+                    required
+                  >
+                    <option value="active">Active</option>
+                    <option value="inactive">Inactive</option>
+                  </select>
+                </div>
+              </div>
             </div>
+
+            {/* Password Fields */}
             <div>
-              <label className="block text-sm font-medium text-slate-700 mb-1">
-                Confirm Password
-              </label>
-              <input
-                type="password"
-                className="w-full px-3 py-2 border border-slate-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
-                value={confirmPassword}
-                onChange={(e) => setConfirmPassword(e.target.value)}
-                required
-              />
+              <h3 className="text-lg font-semibold text-slate-800 mb-4">Password</h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <FormInput
+                  label="Password"
+                  name="password"
+                  type="password"
+                  value={formData.password}
+                  onChange={(e) => handleFieldChange("password", e.target.value)}
+                  error={errors.password}
+                  required
+                />
+                <FormInput
+                  label="Confirm Password"
+                  name="confirmPassword"
+                  type="password"
+                  value={formData.confirmPassword}
+                  onChange={(e) => handleFieldChange("confirmPassword", e.target.value)}
+                  error={errors.confirmPassword}
+                  required
+                />
+              </div>
+              <p className="mt-2 text-xs text-slate-500">
+                Password must be at least 6 characters long
+              </p>
             </div>
-          </div>
 
-          <div>
-            <label className="block text-sm font-medium text-slate-700 mb-1">
-              Role
-            </label>
-            <select
-              className="w-full px-3 py-2 border border-slate-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 bg-white"
-              value={role}
-              onChange={(e) => setRole(e.target.value)}
-            >
-              <option value="teacher">Teacher</option>
-              <option value="admin">Admin</option>
-            </select>
-          </div>
+            {/* Student-Specific Fields */}
+            {formData.role === "student" && (
+              <div>
+                <h3 className="text-lg font-semibold text-slate-800 mb-4">Student Information</h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <FormInput
+                    label="Class ID"
+                    name="classId"
+                    value={formData.classId}
+                    onChange={(e) => handleFieldChange("classId", e.target.value)}
+                    error={errors.classId}
+                    required
+                  />
+                  <FormInput
+                    label="Section ID"
+                    name="sectionId"
+                    value={formData.sectionId}
+                    onChange={(e) => handleFieldChange("sectionId", e.target.value)}
+                  />
+                  <FormInput
+                    label="Admission Number"
+                    name="admissionNo"
+                    value={formData.admissionNo}
+                    onChange={(e) => handleFieldChange("admissionNo", e.target.value)}
+                    error={errors.admissionNo}
+                    required
+                  />
+                  <FormInput
+                    label="Parent Contact"
+                    name="parentContact"
+                    value={formData.parentContact}
+                    onChange={(e) => handleFieldChange("parentContact", e.target.value)}
+                    placeholder="Optional"
+                  />
+                </div>
+              </div>
+            )}
 
-          <button
-            type="submit"
-            disabled={loading}
-            className="w-full inline-flex items-center justify-center px-3 py-2 text-sm font-medium text-white bg-primary-600 hover:bg-primary-700 rounded-md disabled:opacity-60"
-          >
-            {loading ? "Registering..." : "Register"}
-          </button>
-        </form>
+            {/* Parent-Specific Fields */}
+            {formData.role === "parent" && (
+              <div>
+                <h3 className="text-lg font-semibold text-slate-800 mb-4">Parent Information</h3>
+                <FormInput
+                  label="Link Child (Student ID)"
+                  name="childLinking"
+                  value={formData.childLinking}
+                  onChange={(e) => handleFieldChange("childLinking", e.target.value)}
+                  placeholder="Optional - Can be linked later"
+                />
+              </div>
+            )}
 
-        <p className="mt-4 text-xs text-slate-500 text-center">
-          Already have an account?{" "}
-          <Link to="/login" className="text-primary-600 hover:underline">
-            Sign in
-          </Link>
-        </p>
+            {/* Submit Buttons */}
+            <div className="flex justify-end gap-3 pt-4 border-t">
+              <Button
+                type="button"
+                variant="secondary"
+                onClick={() => navigate("/students")}
+              >
+                Cancel
+              </Button>
+              <Button type="submit" loading={loading}>
+                Create User
+              </Button>
+            </div>
+          </form>
+        </div>
       </div>
+
+      {/* Success Modal */}
+      <Modal
+        isOpen={showSuccessModal}
+        onClose={() => {
+          setShowSuccessModal(false);
+          navigate("/students");
+        }}
+        title="User Created Successfully"
+      >
+        <div className="space-y-4">
+          <p className="text-slate-600">
+            The user account has been created successfully. Login credentials have been sent to the user's email.
+          </p>
+          <div className="flex justify-end">
+            <Button onClick={() => {
+              setShowSuccessModal(false);
+              navigate("/students");
+            }}>
+              View Users
+            </Button>
+          </div>
+        </div>
+      </Modal>
     </div>
   );
 }

@@ -11,6 +11,11 @@ const auth = require("../middlewares/auth");
 
 const router = express.Router();
 
+// Debug route to verify auth routes are working
+router.get("/test", (req, res) => {
+  res.json({ message: "Auth routes are working", timestamp: new Date().toISOString() });
+});
+
 router.post(
   "/register",
   [body("fullName").notEmpty(), body("password").isLength({ min: 6 })],
